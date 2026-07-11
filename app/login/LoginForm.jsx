@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
+import Link from "next/link";
 import { LogIn } from "lucide-react";
 
 export default function LoginForm() {
@@ -93,6 +94,13 @@ export default function LoginForm() {
           {loading ? "Entrando…" : "Entrar"}
         </button>
       </form>
+
+      <Link
+        href="/esqueci-senha"
+        className="mt-4 flex items-center justify-center text-xs font-semibold text-[rgb(var(--stone))] hover:text-[#A02018] transition-colors"
+      >
+        Esqueci minha senha
+      </Link>
     </div>
   );
 }

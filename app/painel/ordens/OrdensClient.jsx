@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import Ticket from "@/components/Ticket";
 import TicketActions from "@/components/TicketActions";
+
+const STATUS_LABEL = {
+  aberta: "Aberta",
+  andamento: "Andamento",
+  concluida: "Concluída",
+  recusada: "Recusada",
+};
 
 export default function OrdensClient() {
   const [osList, setOsList] = useState([]);
@@ -14,6 +21,8 @@ export default function OrdensClient() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [query, setQuery] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("todas");
 
   useEffect(() => {
     (async () => {
@@ -85,6 +94,20 @@ export default function OrdensClient() {
     }
   };
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return osList
+      .filter((os) => statusFiltro === "todas" || os.status === statusFiltro)
+      .filter((os) => {
+        if (!q) return true;
+        return (
+          os.cliente?.name?.toLowerCase().includes(q) ||
+          os.serviceType?.toLowerCase().includes(q) ||
+          os.technician?.name?.toLowerCase().includes(q)
+        );
+      });
+  }, [osList, query, statusFiltro]);
+
   if (!loaded) {
     return <div className="max-w-3xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -108,12 +131,36 @@ export default function OrdensClient() {
       )}
 
       <h1 className="font-black uppercase tracking-tight text-xl text-[rgb(var(--ink-strong)/1)] mb-3">
-        Ordens de serviço <span className="text-[rgb(var(--stone))] font-normal">({osList.length})</span>
+        Ordens de serviço <span className="text-[rgb(var(--stone))] font-normal">({filtered.length})</span>
       </h1>
 
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="flex items-center gap-2 bg-[rgb(var(--input-bg)/0.70)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex-1">
+          <Search size={16} className="text-[rgb(var(--stone))]" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por cliente, serviço ou técnico"
+            className="bg-transparent outline-none text-sm flex-1 text-[rgb(var(--ink-strong)/1)] placeholder:text-[rgb(var(--stone))]"
+          />
+        </div>
+        <select
+          value={statusFiltro}
+          onChange={(e) => setStatusFiltro(e.target.value)}
+          className="border border-[rgb(var(--border-strong)/0.2)] bg-[rgb(var(--input-bg)/0.70)] px-3 py-2 text-sm text-[rgb(var(--ink-strong)/1)] outline-none"
+        >
+          <option value="todas">Todos os status</option>
+          {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="flex flex-col gap-3">
-        {osList.length === 0 && <EmptyState text="Nenhuma ordem de serviço cadastrada." />}
-        {osList.map((os) => (
+        {filtered.length === 0 && <EmptyState text="Nenhuma ordem de serviço encontrada para esse filtro." />}
+        {filtered.map((os) => (
           <Ticket
             key={os.id}
             os={os}

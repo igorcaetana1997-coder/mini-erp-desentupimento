@@ -19,7 +19,18 @@ model User {
   parceiroId String? // só usado quando role === "parceiro": qual Parceiro esse login representa
   parceiro   Parceiro? @relation(fields: [parceiroId], references: [id])
 
-  ordens OrdemServico[]
+  ordens      OrdemServico[]
+  resetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model Cliente {

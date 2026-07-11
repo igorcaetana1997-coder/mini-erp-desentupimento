@@ -4,7 +4,7 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Smartphone, LogOut, CalendarDays, Wallet, LayoutGrid } from "lucide-react";
+import { LayoutDashboard, Smartphone, LogOut, CalendarDays, Wallet, LayoutGrid, KeyRound } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
 export default function TopBar({ user }) {
@@ -55,6 +55,13 @@ export default function TopBar({ user }) {
           </div>
         )}
         <ThemeToggle />
+        <Link
+          href="/conta/senha"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#9a9a9a] hover:text-[#C6FE1F] transition-colors"
+          title="Alterar senha"
+        >
+          <KeyRound size={14} />
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#9a9a9a] hover:text-[#C6FE1F] transition-colors"

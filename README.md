@@ -116,7 +116,12 @@ local — funciona direto em produção serverless.
    - `DIRECT_URL` — connection string **direta** da Neon.
    - `NEXTAUTH_SECRET` — um valor aleatório (pode ser o mesmo do `.env` local
      ou gerar outro com `openssl rand -base64 32`).
-   - `NEXTAUTH_URL` — a URL pública do deploy (ex.: `https://seu-projeto.vercel.app`).
+   - `NEXTAUTH_URL` — a URL pública do deploy (ex.: `https://seu-projeto.vercel.app` ou o
+     domínio próprio, ex.: `https://erp.realleaderdesentupidora.com.br`).
+   - `RESEND_API_KEY` — API Key gerada no painel da [Resend](https://resend.com), usada
+     para enviar o e-mail de "esqueci minha senha".
+   - `NEXT_PUBLIC_SENTRY_DSN` — DSN do projeto no [Sentry](https://sentry.io) (aba
+     "Configure Next.js SDK" → "Copy DSN"), usado para monitoramento de erros.
 3. Deploy. O script `build` (`package.json`) já roda
    `prisma migrate deploy && next build`, então qualquer migration pendente é
    aplicada automaticamente no banco Neon a cada deploy — não precisa de
@@ -292,6 +297,32 @@ ser excluídos (com confirmação inline), mas a exclusão é **bloqueada** se
 existir alguma OS vinculada — a mensagem de erro explica quantas e pede pra
 excluir/reatribuir as OS antes.
 
+### Recuperação e alteração de senha
+- **"Esqueci minha senha"** (`/esqueci-senha`, link na tela de login): o usuário informa o
+  e-mail e recebe (via [Resend](https://resend.com)) um link de redefinição válido por
+  **1 hora** e de **uso único**. A resposta da API é sempre a mesma mensagem genérica,
+  mesmo se o e-mail não existir, pra não revelar quais e-mails estão cadastrados.
+- **Redefinir senha** (`/redefinir-senha?token=...`): o link do e-mail leva pra essa página,
+  onde o usuário define a nova senha. O token é guardado no banco só como **hash SHA-256**
+  (`lib/passwordReset.js`), nunca em texto puro.
+- **Alterar senha** (`/conta/senha`, ícone de chave na barra superior, qualquer papel
+  logado): pede a senha atual + a nova, sem depender de e-mail — para quem já está logado
+  e só quer trocar a senha.
+
+### Monitoramento de erros (Sentry)
+Erros não tratados (tanto no servidor/API quanto no navegador) são capturados
+automaticamente pelo [Sentry](https://sentry.io) (`@sentry/nextjs`), configurado em
+`sentry.client.config.js`, `sentry.server.config.js`, `sentry.edge.config.js` e
+`instrumentation.js`, com `next.config.mjs` envolvido por `withSentryConfig`. Sem o
+`NEXT_PUBLIC_SENTRY_DSN` preenchido no `.env`/Vercel, a aplicação funciona normalmente,
+só não envia nada pro Sentry.
+
+### Busca e filtro na lista de OS
+A lista completa (`/painel/ordens`) tem um campo de busca (por cliente, tipo de serviço
+ou técnico) e um filtro por status (aberta/andamento/concluída/recusada), iguais em
+espírito ao filtro já usado nas visões de técnico/parceiro — filtragem no navegador,
+sem chamada nova à API.
+
 ### Notificações automáticas (WhatsApp/SMS) — não implementado, só estruturado
 Por pedido explícito, **não há envio automático** de mensagens (isso depende
 de um serviço pago como Twilio ou Z-API). O que existe é um ponto de extensão
@@ -306,6 +337,10 @@ real entra só ali dentro.
 ```
 app/
   login/                      página + formulário de login
+  esqueci-senha/               solicitar link de redefinição de senha (público)
+  redefinir-senha/             definir nova senha a partir do link recebido (público)
+  conta/senha/                 alterar senha estando logado (qualquer papel)
+  global-error.jsx             error boundary raiz (reporta pro Sentry)
   painel/                     painel administrativo
     clientes/                  lista completa de clientes (+ exclusão)
     clientes/[id]/             detalhe do cliente + histórico de OS
@@ -321,6 +356,9 @@ app/
   ordens/[id]/recibo/          recibo imprimível/PDF (admin, técnico ou parceiro dono)
   api/
     auth/[...nextauth]         rota do NextAuth
+    auth/esqueci-senha          POST (gera token + envia e-mail via Resend) — resposta sempre genérica
+    auth/redefinir-senha        POST (valida token + define nova senha)
+    auth/senha                  PATCH (troca de senha estando logado, qualquer papel)
     clientes                   GET / POST (cadastro completo) — POST só admin
     clientes/[id]              GET (cliente + histórico) / PATCH / DELETE (bloqueia se tiver OS) — só admin
     tecnicos                   GET / POST (criar técnico) — só admin
@@ -354,6 +392,8 @@ lib/
   comissaoTecnico.js             calcularFaixa(faixas, totalFaturado) — regra da faixa de comissão do técnico
   exportCsv.js                   downloadCsv(filename, headers, rows) — exportação client-side, sem lib externa
   paymentStatus.js                getStatusPagamento(os) — deriva pago/parcial/pendente a partir de valorPago
+  email.js                        sendPasswordResetEmail(to, resetUrl) via Resend
+  passwordReset.js                generateResetToken() / hashToken() — token de redefinição de senha
 prisma/                        schema.prisma, seed.js e migrations/
 middleware.js                   protege /painel, /tecnico, /parceiro e /ordens por login/papel
 ```
