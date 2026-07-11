@@ -8,13 +8,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   // "admin" | "tecnico"
-  phone     String?
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  name       String
+  email      String    @unique
+  password   String
+  role       String // "admin" | "tecnico" | "parceiro"
+  phone      String?
+  createdAt  DateTime  @default(now())
+  parceiroId String? // só usado quando role === "parceiro": qual Parceiro esse login representa
+  parceiro   Parceiro? @relation(fields: [parceiroId], references: [id])
 
   ordens OrdemServico[]
 }
@@ -53,7 +55,8 @@ model OrdemServico {
 
   // Financeiro
   paymentMethod String? // "dinheiro" | "pix" | "cartao" | "boleto"
-  paymentStatus String  @default("pendente") // "pendente" | "pago"
+  paymentStatus String  @default("pendente") // legado, não usado mais pelo app (ver valorPago)
+  valorPago     Float   @default(0) // quanto já foi recebido; pago/parcial/pendente é derivado (lib/paymentStatus.js)
   dueDate       DateTime?
 
   // Terceirização
@@ -103,6 +106,7 @@ model Parceiro {
   createdAt   DateTime @default(now())
 
   ordens OrdemServico[]
+  logins User[]
 }
 
 model FaixaComissao {
