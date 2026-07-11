@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calcularFaixa } from "@/lib/comissaoTecnico";
+import { getStatusPagamento } from "@/lib/paymentStatus";
 
 function mesAtual() {
   const d = new Date();
@@ -44,12 +45,8 @@ export async function GET(req) {
   const concluidas = concluidasArr.length;
   const recusadas = recusadasArr.length;
 
-  const faturamentoPago = concluidasArr
-    .filter((os) => os.paymentStatus === "pago")
-    .reduce((sum, os) => sum + (os.value || 0), 0);
-  const faturamentoPendente = concluidasArr
-    .filter((os) => os.paymentStatus !== "pago")
-    .reduce((sum, os) => sum + (os.value || 0), 0);
+  const faturamentoPago = concluidasArr.reduce((sum, os) => sum + (os.valorPago || 0), 0);
+  const faturamentoPendente = concluidasArr.reduce((sum, os) => sum + getStatusPagamento(os).faltante, 0);
   const faturamentoTotal = faturamentoPago + faturamentoPendente;
   const ticketMedio = concluidas > 0 ? faturamentoTotal / concluidas : 0;
   const taxaConclusao = concluidas + recusadas > 0 ? concluidas / (concluidas + recusadas) : null;

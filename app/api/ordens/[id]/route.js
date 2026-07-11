@@ -15,8 +15,9 @@ const VALID_PARCERIA_TIPOS = ["repassado", "recebido"];
 
 // Edição geral da OS (não mexe no fluxo aberta/andamento/concluida, que vive
 // em /avancar e /concluir). Admin pode editar praticamente tudo, incluindo
-// reatribuir técnico e reabrir uma OS recusada. Técnico só edita materiais e
-// a própria avaliação, e só na sua OS.
+// reatribuir técnico, registrar pagamento e reabrir uma OS recusada. Técnico
+// dono edita materiais/avaliação/valor; parceiro dono só edita o valor —
+// ambos só enquanto a OS não estiver concluída.
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -29,8 +30,9 @@ export async function PATCH(req, { params }) {
   }
 
   const isAdmin = session.user.role === "admin";
-  const isOwner = os.technicianId === session.user.id;
-  if (!isAdmin && !isOwner) {
+  const isOwnerTecnico = session.user.role === "tecnico" && os.technicianId === session.user.id;
+  const isOwnerParceiro = session.user.role === "parceiro" && os.parceiroId === session.user.parceiroId;
+  if (!isAdmin && !isOwnerTecnico && !isOwnerParceiro) {
     return NextResponse.json({ error: "Você não tem acesso a esta ordem de serviço" }, { status: 403 });
   }
 
@@ -38,17 +40,35 @@ export async function PATCH(req, { params }) {
   const data = {};
 
   // Campos que técnico dono e admin podem editar
-  if (typeof body.materiais === "string") data.materiais = body.materiais.trim() || null;
-  if (body.avaliacaoNota !== undefined) {
-    if (body.avaliacaoNota === null || body.avaliacaoNota === "") {
-      data.avaliacaoNota = null;
-    } else {
-      const nota = Number(body.avaliacaoNota);
-      if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
-        return NextResponse.json({ error: "Nota de avaliação deve ser um número inteiro de 1 a 5" }, { status: 400 });
+  if (isAdmin || isOwnerTecnico) {
+    if (typeof body.materiais === "string") data.materiais = body.materiais.trim() || null;
+    if (body.avaliacaoNota !== undefined) {
+      if (body.avaliacaoNota === null || body.avaliacaoNota === "") {
+        data.avaliacaoNota = null;
+      } else {
+        const nota = Number(body.avaliacaoNota);
+        if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+          return NextResponse.json({ error: "Nota de avaliação deve ser um número inteiro de 1 a 5" }, { status: 400 });
+        }
+        data.avaliacaoNota = nota;
       }
-      data.avaliacaoNota = nota;
     }
+  }
+
+  // Valor do serviço: técnico dono ou parceiro dono podem ajustar, só
+  // enquanto a OS ainda não foi concluída (nem recusada).
+  if (!isAdmin && (isOwnerTecnico || isOwnerParceiro) && body.value !== undefined) {
+    if (!["aberta", "andamento"].includes(os.status)) {
+      return NextResponse.json(
+        { error: "Só é possível editar o valor antes da conclusão da OS" },
+        { status: 400 }
+      );
+    }
+    const novoValor = Number(body.value);
+    if (!Number.isFinite(novoValor) || novoValor < 0) {
+      return NextResponse.json({ error: "Valor deve ser um número maior ou igual a zero" }, { status: 400 });
+    }
+    data.value = novoValor;
   }
 
   if (!isAdmin) {
@@ -78,11 +98,16 @@ export async function PATCH(req, { params }) {
     }
     data.paymentMethod = body.paymentMethod || null;
   }
-  if (body.paymentStatus !== undefined) {
-    if (!["pago", "pendente"].includes(body.paymentStatus)) {
-      return NextResponse.json({ error: "Status de pagamento inválido" }, { status: 400 });
+  if (body.valorPago !== undefined) {
+    const valorPago = Number(body.valorPago);
+    const valorFinal = data.value !== undefined ? data.value : os.value;
+    if (!Number.isFinite(valorPago) || valorPago < 0) {
+      return NextResponse.json({ error: "Valor pago deve ser um número maior ou igual a zero" }, { status: 400 });
     }
-    data.paymentStatus = body.paymentStatus;
+    if (valorFinal !== null && valorPago > valorFinal) {
+      return NextResponse.json({ error: "Valor pago não pode ser maior que o valor da OS" }, { status: 400 });
+    }
+    data.valorPago = valorPago;
   }
   if (body.dueDate !== undefined) data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
 

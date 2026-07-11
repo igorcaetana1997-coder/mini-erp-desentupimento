@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -61,7 +62,7 @@ model OrdemServico {
 
   // Terceirização
   parceiroId         String?
-  parceiro           Parceiro? @relation(fields: [parceiroId], references: [id])
+  parceiro           Parceiro? @relation(fields: [parceiroId], references: [id], onDelete: Restrict)
   parceriaTipo       String? // "repassado" (eu recebo comissão) | "recebido" (eu pago comissão)
   parceriaPercentual Float?
 

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calcularFaixa } from "@/lib/comissaoTecnico";
+import { getStatusPagamento } from "@/lib/paymentStatus";
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
@@ -45,8 +46,10 @@ export async function GET(req) {
   ]);
 
   const totalFaturado = ordens.reduce((sum, os) => sum + (os.value || 0), 0);
-  const ordensPagas = ordens.filter((os) => os.paymentStatus === "pago");
-  const totalPago = ordensPagas.reduce((sum, os) => sum + (os.value || 0), 0);
+  // Comissões (parceiro/técnico) só valem sobre OS totalmente pagas — pagamento
+  // parcial ainda não "fecha" a conta pra fins de comissão.
+  const ordensPagas = ordens.filter((os) => getStatusPagamento(os).status === "pago");
+  const totalPago = ordens.reduce((sum, os) => sum + (os.valorPago || 0), 0);
   const totalPendente = totalFaturado - totalPago;
   const totalDespesas = despesas.reduce((sum, d) => sum + (d.valor || 0), 0);
 

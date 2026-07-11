@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import Stamp from "@/components/Stamp";
 import ReciboActions from "./ReciboActions";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { getStatusPagamento } from "@/lib/paymentStatus";
 
 const PAYMENT_LABELS = {
   dinheiro: "Dinheiro",
@@ -26,7 +27,9 @@ export default async function ReciboPage({ params }) {
   if (!os) notFound();
 
   const isAdmin = session.user.role === "admin";
-  const isOwner = os.technicianId === session.user.id;
+  const isOwner =
+    os.technicianId === session.user.id ||
+    (session.user.role === "parceiro" && os.parceiroId === session.user.parceiroId);
   if (!isAdmin && !isOwner) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center text-[rgb(var(--ink-strong)/1)]">
@@ -85,8 +88,20 @@ export default async function ReciboPage({ params }) {
               <p className="text-[10px] font-bold uppercase text-[rgb(var(--stone))]">Pagamento</p>
               <p className="text-[rgb(var(--ink-strong)/1)]">
                 {PAYMENT_LABELS[os.paymentMethod] || "Não informado"} —{" "}
-                <span className={os.paymentStatus === "pago" ? "text-[#1E7A52]" : "text-[#A02018]"}>
-                  {os.paymentStatus === "pago" ? "Pago" : "Pendente"}
+                <span
+                  className={
+                    getStatusPagamento(os).status === "pago"
+                      ? "text-[#1E7A52]"
+                      : getStatusPagamento(os).status === "parcial"
+                      ? "text-[#E8A33D]"
+                      : "text-[#A02018]"
+                  }
+                >
+                  {getStatusPagamento(os).status === "pago"
+                    ? "Pago"
+                    : getStatusPagamento(os).status === "parcial"
+                    ? `Parcial (falta R$ ${getStatusPagamento(os).faltante.toFixed(2)})`
+                    : "Pendente"}
                 </span>
               </p>
             </div>

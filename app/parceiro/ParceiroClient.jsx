@@ -6,7 +6,7 @@ import Ticket from "@/components/Ticket";
 import TicketActions from "@/components/TicketActions";
 import EmptyState from "@/components/EmptyState";
 
-export default function TecnicoClient() {
+export default function ParceiroClient() {
   const [osList, setOsList] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
@@ -48,17 +48,6 @@ export default function TecnicoClient() {
     }
   };
 
-  const handleAvancar = (id) => patchOs(id, `/api/ordens/${id}/avancar`, null, "Não foi possível avançar a OS.");
-  const handleRecusar = (id, motivo) =>
-    patchOs(id, `/api/ordens/${id}/recusar`, { motivo }, "Não foi possível recusar a OS.");
-  const handleConcluir = (id, payload) =>
-    patchOs(id, `/api/ordens/${id}/concluir`, payload, "Não foi possível concluir a OS.");
-  const handleSalvarMateriais = (id, materiais) =>
-    patchOs(id, `/api/ordens/${id}`, { materiais }, "Não foi possível salvar os materiais.");
-  const handleSalvarAvaliacao = (id, avaliacaoNota) =>
-    patchOs(id, `/api/ordens/${id}`, { avaliacaoNota }, "Não foi possível salvar a avaliação.");
-  const handleFotoAdicionada = (id, foto) =>
-    setOsList((prev) => prev.map((os) => (os.id === id ? { ...os, fotos: [...(os.fotos || []), foto] } : os)));
   const handleSalvarValor = (id, value) =>
     patchOs(id, `/api/ordens/${id}`, { value }, "Não foi possível salvar o valor.");
 
@@ -70,7 +59,6 @@ export default function TecnicoClient() {
         if (!q) return true;
         return (
           os.cliente?.name?.toLowerCase().includes(q) ||
-          os.cliente?.address?.toLowerCase().includes(q) ||
           os.serviceType?.toLowerCase().includes(q)
         );
       });
@@ -98,14 +86,14 @@ export default function TecnicoClient() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por cliente, endereço ou serviço"
+          placeholder="Buscar por cliente ou serviço"
           className="bg-transparent outline-none text-sm flex-1 text-[rgb(var(--ink-strong)/1)] placeholder:text-[rgb(var(--stone))]"
         />
       </div>
 
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-[rgb(var(--ink))] flex items-center gap-1">
-          <Clock size={12} /> {openCount} chamado(s) em aberto
+          <Clock size={12} /> {openCount} OS em aberto
         </p>
         <label className="flex items-center gap-1.5 text-xs text-[rgb(var(--ink))]">
           <input
@@ -119,7 +107,7 @@ export default function TecnicoClient() {
 
       <div className="flex flex-col gap-3">
         {filtered.length === 0 && (
-          <EmptyState text="Nenhum chamado encontrado para esse filtro." />
+          <EmptyState text="Nenhuma OS encontrada para esse filtro." />
         )}
         {filtered.map((os) => (
           <Ticket
@@ -129,16 +117,10 @@ export default function TecnicoClient() {
             actions={
               <TicketActions
                 os={os}
-                role="tecnico"
+                role="parceiro"
                 isOwner
                 tecnicos={[]}
                 busy={busyId === os.id}
-                onAvancar={handleAvancar}
-                onRecusar={handleRecusar}
-                onConcluir={handleConcluir}
-                onSalvarMateriais={handleSalvarMateriais}
-                onSalvarAvaliacao={handleSalvarAvaliacao}
-                onFotoAdicionada={handleFotoAdicionada}
                 onSalvarValor={handleSalvarValor}
               />
             }

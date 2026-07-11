@@ -19,7 +19,7 @@ export default function TopBar({ user }) {
     }`;
 
   return (
-    <div className="bg-[#0F0F0F] text-[#F2EFE9] px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-md">
+    <div className="print:hidden bg-[#0F0F0F] text-[#F2EFE9] px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-md">
       <div className="flex items-center gap-3">
         <Image
           src="/logo-horizontal-outline.png"

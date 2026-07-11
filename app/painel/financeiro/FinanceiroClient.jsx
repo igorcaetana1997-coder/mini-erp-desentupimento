@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Wallet, CheckCircle2, Clock, TrendingDown, Scale, Plus, Trash2, Handshake, Download } from "lucide-react";
+import { Wallet, CheckCircle2, Clock, TrendingDown, Scale, Plus, Trash2, Handshake, Download, Printer } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import { downloadCsv } from "@/lib/exportCsv";
+import { getStatusPagamento } from "@/lib/paymentStatus";
+
+const STATUS_LABELS = { pago: "Pago", parcial: "Parcial", pendente: "Pendente" };
+const STATUS_CLASSES = { pago: "text-[#1E7A52]", parcial: "text-[#E8A33D]", pendente: "text-[#A02018]" };
 
 const CATEGORIAS = ["Material", "Combustível", "Manutenção", "Salário", "Outro"];
 
@@ -107,7 +111,7 @@ export default function FinanceiroClient() {
       os.cliente?.name || "",
       os.technician?.name || "",
       os.parceiro?.name || "",
-      os.paymentStatus === "pago" ? "Pago" : "Pendente",
+      STATUS_LABELS[getStatusPagamento(os).status] || "",
       Number(os.value || 0).toFixed(2),
     ]);
     rows.push([]);
@@ -124,16 +128,24 @@ export default function FinanceiroClient() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-black uppercase tracking-tight text-[rgb(var(--ink-strong)/1)] text-xl">Financeiro</h1>
         {report && (
-          <button
-            onClick={exportarCsv}
-            className="flex items-center gap-1.5 border-2 border-[rgb(var(--border-strong)/1)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#142D65]/5 transition-colors"
-          >
-            <Download size={14} /> Exportar CSV
-          </button>
+          <div className="print:hidden flex gap-2">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#203D7B] transition-colors"
+            >
+              <Printer size={14} /> Imprimir / salvar PDF
+            </button>
+            <button
+              onClick={exportarCsv}
+              className="flex items-center gap-1.5 border-2 border-[rgb(var(--border-strong)/1)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#142D65]/5 transition-colors"
+            >
+              <Download size={14} /> Exportar CSV
+            </button>
+          </div>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-5 bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] p-3">
+      <div className="print:hidden flex flex-wrap gap-2 mb-5 bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] p-3">
         <div>
           <label className="text-[10px] font-bold uppercase text-[rgb(var(--ink))]">De</label>
           <input
@@ -183,20 +195,20 @@ export default function FinanceiroClient() {
       {!loading && report && (
         <>
           <div className="grid sm:grid-cols-3 gap-3 mb-3">
-            <div className="bg-[#142D65] text-[#F2EFE9] p-3 flex flex-col gap-1">
-              <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#8fb3ad]">
+            <div className="print:bg-white print:text-black print:border print:border-black bg-[#142D65] text-[#F2EFE9] p-3 flex flex-col gap-1">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#8fb3ad] print:text-black">
                 <Wallet size={12} /> Total faturado
               </span>
               <span className="font-mono font-black text-lg">{formatMoney(report.totais.totalFaturado)}</span>
-              <span className="text-[10px] text-[#8fb3ad]">{report.totais.quantidade} OS concluída(s)</span>
+              <span className="text-[10px] text-[#8fb3ad] print:text-black">{report.totais.quantidade} OS concluída(s)</span>
             </div>
-            <div className="bg-[#1E7A52] text-[#F2EFE9] p-3 flex flex-col gap-1">
+            <div className="print:bg-white print:text-black print:border print:border-black bg-[#1E7A52] text-[#F2EFE9] p-3 flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
                 <CheckCircle2 size={12} /> Pago
               </span>
               <span className="font-mono font-black text-lg">{formatMoney(report.totais.totalPago)}</span>
             </div>
-            <div className="bg-[#E8A33D] text-[#1a1208] p-3 flex flex-col gap-1">
+            <div className="print:bg-white print:text-black print:border print:border-black bg-[#E8A33D] text-[#1a1208] p-3 flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
                 <Clock size={12} /> Pendente
               </span>
@@ -205,13 +217,17 @@ export default function FinanceiroClient() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3 mb-3">
-            <div className="bg-[#A02018] text-[#F2EFE9] p-3 flex flex-col gap-1">
+            <div className="print:bg-white print:text-black print:border print:border-black bg-[#A02018] text-[#F2EFE9] p-3 flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
                 <TrendingDown size={12} /> Despesas
               </span>
               <span className="font-mono font-black text-lg">{formatMoney(report.totais.totalDespesas)}</span>
             </div>
-            <div className={`p-3 flex flex-col gap-1 ${report.totais.saldo >= 0 ? "bg-[#3d4a44]" : "bg-[#A02018]"} text-[#F2EFE9]`}>
+            <div
+              className={`print:bg-white print:text-black print:border print:border-black p-3 flex flex-col gap-1 ${
+                report.totais.saldo >= 0 ? "bg-[#3d4a44]" : "bg-[#A02018]"
+              } text-[#F2EFE9]`}
+            >
               <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
                 <Scale size={12} /> Saldo líquido
               </span>
@@ -285,7 +301,7 @@ export default function FinanceiroClient() {
               <h2 className="font-black uppercase text-sm text-[rgb(var(--ink-strong)/1)]">Despesas do período</h2>
               <button
                 onClick={() => setShowDespesaForm((v) => !v)}
-                className="flex items-center gap-1 bg-[#A02018] text-[#F2EFE9] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#7A1812] transition-colors"
+                className="print:hidden flex items-center gap-1 bg-[#A02018] text-[#F2EFE9] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#7A1812] transition-colors"
               >
                 <Plus size={14} /> Lançar despesa
               </button>
@@ -355,7 +371,7 @@ export default function FinanceiroClient() {
                       <span className="font-mono font-bold text-[#A02018]">{formatMoney(d.valor)}</span>
                       <button
                         onClick={() => removerDespesa(d.id)}
-                        className="text-[rgb(var(--stone))] hover:text-[#A02018] transition-colors"
+                        className="print:hidden text-[rgb(var(--stone))] hover:text-[#A02018] transition-colors"
                         title="Remover despesa"
                       >
                         <Trash2 size={14} />
@@ -391,8 +407,8 @@ export default function FinanceiroClient() {
                       <td className="px-2 py-1.5">{os.cliente?.name}</td>
                       <td className="px-2 py-1.5">{os.technician?.name || "—"}</td>
                       <td className="px-2 py-1.5">
-                        <span className={os.paymentStatus === "pago" ? "text-[#1E7A52]" : "text-[#A02018]"}>
-                          {os.paymentStatus === "pago" ? "Pago" : "Pendente"}
+                        <span className={STATUS_CLASSES[getStatusPagamento(os).status]}>
+                          {STATUS_LABELS[getStatusPagamento(os).status]}
                         </span>
                       </td>
                       <td className="px-2 py-1.5 text-right font-mono font-bold">{formatMoney(os.value)}</td>

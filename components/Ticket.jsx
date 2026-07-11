@@ -3,6 +3,13 @@
 import { AlertTriangle, User, MapPin, Phone, StickyNote, Wrench, Star, Camera, Handshake } from "lucide-react";
 import Stamp from "./Stamp";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { getStatusPagamento } from "@/lib/paymentStatus";
+
+const PAGAMENTO_LABELS = {
+  pago: { texto: "Pago", classe: "text-[#1E7A52]" },
+  parcial: { texto: "Pagamento parcial", classe: "text-[#E8A33D]" },
+  pendente: { texto: "Pagamento pendente", classe: "text-[#A02018]" },
+};
 
 const PAYMENT_LABELS = {
   dinheiro: "Dinheiro",
@@ -21,6 +28,7 @@ function formatDateTime(value) {
 export default function Ticket({ os, compact, actions }) {
   const cliente = os.cliente;
   const endereco = formatEndereco(cliente);
+  const { status: statusPagamento, faltante } = getStatusPagamento(os);
 
   return (
     <div className="relative bg-[rgb(var(--surface))] border-2 border-[rgb(var(--border-strong)/1)] shadow-[4px_4px_0_rgb(var(--border-strong))]">
@@ -83,24 +91,28 @@ export default function Ticket({ os, compact, actions }) {
           </span>
         </div>
 
-        {(os.paymentMethod || os.status === "concluida") && (
+        {(os.paymentMethod || statusPagamento) && (
           <div className="flex items-center gap-2 text-[11px] text-[rgb(var(--ink))]">
             {os.paymentMethod && (
               <span className="border border-[rgb(var(--border-strong)/0.2)] px-1.5 py-0.5">
                 {PAYMENT_LABELS[os.paymentMethod] || os.paymentMethod}
               </span>
             )}
-            <span
-              className={`px-1.5 py-0.5 font-semibold ${
-                os.paymentStatus === "pago" ? "text-[#1E7A52]" : "text-[#A02018]"
-              }`}
-            >
-              {os.paymentStatus === "pago" ? "Pago" : "Pagamento pendente"}
-            </span>
+            {statusPagamento && (
+              <span className={`px-1.5 py-0.5 font-semibold ${PAGAMENTO_LABELS[statusPagamento].classe}`}>
+                {PAGAMENTO_LABELS[statusPagamento].texto}
+              </span>
+            )}
             {os.dueDate && (
               <span>vence {new Date(os.dueDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
             )}
           </div>
+        )}
+
+        {faltante > 0 && (
+          <p className="text-[11px] font-semibold text-[#A02018] flex items-center gap-1.5 bg-[#A02018]/10 border border-[#A02018]/30 px-2 py-1">
+            <AlertTriangle size={12} className="shrink-0" /> Falta receber R$ {faltante.toFixed(2)}
+          </p>
         )}
 
         {os.materiais && (

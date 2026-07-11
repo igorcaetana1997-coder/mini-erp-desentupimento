@@ -13,5 +13,9 @@ export default async function HomePage() {
     redirect("/painel");
   }
 
+  if (session.user.role === "parceiro") {
+    redirect("/parceiro");
+  }
+
   redirect("/tecnico");
 }

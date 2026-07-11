@@ -10,6 +10,7 @@ import TicketActions from "@/components/TicketActions";
 export default function OrdensClient() {
   const [osList, setOsList] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
+  const [parceiros, setParceiros] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
@@ -17,10 +18,15 @@ export default function OrdensClient() {
   useEffect(() => {
     (async () => {
       try {
-        const [ordensRes, tecnicosRes] = await Promise.all([fetch("/api/ordens"), fetch("/api/tecnicos")]);
-        if (!ordensRes.ok || !tecnicosRes.ok) throw new Error();
+        const [ordensRes, tecnicosRes, parceirosRes] = await Promise.all([
+          fetch("/api/ordens"),
+          fetch("/api/tecnicos"),
+          fetch("/api/parceiros"),
+        ]);
+        if (!ordensRes.ok || !tecnicosRes.ok || !parceirosRes.ok) throw new Error();
         setOsList(await ordensRes.json());
         setTecnicos(await tecnicosRes.json());
+        setParceiros(await parceirosRes.json());
       } catch {
         setError("Não foi possível carregar as ordens de serviço.");
       } finally {
@@ -60,8 +66,10 @@ export default function OrdensClient() {
     patchOs(id, `/api/ordens/${id}`, { avaliacaoNota }, "Não foi possível salvar a avaliação.");
   const handleFotoAdicionada = (id, foto) =>
     setOsList((prev) => prev.map((os) => (os.id === id ? { ...os, fotos: [...(os.fotos || []), foto] } : os)));
-  const handleConfirmarPagamento = (id, paymentStatus) =>
-    patchOs(id, `/api/ordens/${id}`, { paymentStatus }, "Não foi possível atualizar o pagamento.");
+  const handleRegistrarPagamento = (id, valorPago) =>
+    patchOs(id, `/api/ordens/${id}`, { valorPago }, "Não foi possível registrar o pagamento.");
+  const handleEditarOs = (id, payload) =>
+    patchOs(id, `/api/ordens/${id}`, payload, "Não foi possível salvar as alterações da OS.");
 
   const handleExcluir = async (id) => {
     setBusyId(id);
@@ -115,6 +123,7 @@ export default function OrdensClient() {
                 role="admin"
                 isOwner={false}
                 tecnicos={tecnicos}
+                parceiros={parceiros}
                 busy={busyId === os.id}
                 onAvancar={handleAvancar}
                 onRecusar={handleRecusar}
@@ -123,7 +132,8 @@ export default function OrdensClient() {
                 onSalvarMateriais={handleSalvarMateriais}
                 onSalvarAvaliacao={handleSalvarAvaliacao}
                 onFotoAdicionada={handleFotoAdicionada}
-                onConfirmarPagamento={handleConfirmarPagamento}
+                onRegistrarPagamento={handleRegistrarPagamento}
+                onEditarOs={handleEditarOs}
                 onExcluir={handleExcluir}
               />
             }

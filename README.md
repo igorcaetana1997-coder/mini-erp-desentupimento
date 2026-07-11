@@ -1,9 +1,11 @@
 # Real Leader Desentupidora — Painel (Mini ERP)
 
-Aplicação web em Next.js (App Router) + Prisma/SQLite, com login de dois perfis
-(admin e técnico), cadastro de clientes, ordens de serviço com agenda e
-financeiro, conclusão com assinatura do cliente e recibo em PDF. Identidade
-visual (logo, cores e fonte) da **Real Leader Desentupidora**.
+Aplicação web em Next.js (App Router) + Prisma/**PostgreSQL (hospedado na
+[Neon](https://neon.tech))**, com login de três perfis (admin, técnico e
+parceiro), cadastro de clientes, ordens de serviço com agenda e financeiro,
+conclusão com assinatura do cliente e recibo em PDF. Pronta pra deploy na
+**Vercel**. Identidade visual (logo, cores e fonte) da **Real Leader
+Desentupidora**.
 
 ## 0. Identidade visual
 
@@ -34,49 +36,44 @@ visual (logo, cores e fonte) da **Real Leader Desentupidora**.
 
 ## 1. Pré-requisitos
 
-Instale o **Node.js LTS (18 ou 20)**: https://nodejs.org — este projeto não roda sem ele.
-Verifique depois de instalar:
-
-```
-node -v
-npm -v
-```
+- **Node.js LTS (18 ou 20)**: https://nodejs.org — este projeto não roda sem ele.
+  Verifique depois de instalar:
+  ```
+  node -v
+  npm -v
+  ```
+- **Conta grátis na [Neon](https://neon.tech)** com um projeto/banco Postgres
+  criado. No painel do projeto, em "Connection Details", você vai encontrar
+  duas connection strings: uma **pooled** (host termina em `-pooler`) e uma
+  **direta** (sem `-pooler`) — as duas são usadas no passo de instalação.
 
 ## 2. Instalação
-
-### Instalação nova (do zero)
 
 Dentro da pasta `mini-erp-desentupimento`:
 
 ```
-npm install
-npx prisma migrate dev
-npm run db:seed
+cp .env.example .env
 ```
 
-Isso cria o banco `prisma/dev.db` (SQLite), aplica todas as migrações (incluindo
-os campos de financeiro/agenda/fotos/etc.) e popula com um usuário admin, um
-técnico de demonstração e alguns clientes/OS de exemplo.
-
-### Atualizando uma instalação que já existia
-
-Se você já tinha o projeto rodando antes desta evolução (financeiro, agenda,
-histórico, materiais, conclusão/assinatura/PDF, avaliação, CEP, fotos, recusa),
-**não rode `migrate dev` de novo** — use `migrate deploy`, que só aplica as
-migrações novas sem tocar nos dados que já existem:
+Edite o `.env` e cole as connection strings da Neon em `DATABASE_URL` (a
+**pooled**) e `DIRECT_URL` (a **direta**), e gere um `NEXTAUTH_SECRET` novo
+(`openssl rand -base64 32`). Veja os comentários do `.env.example` para
+detalhes de cada variável.
 
 ```
 npm install
 npx prisma migrate deploy
-npx prisma generate
+npm run db:seed
 ```
 
-A migração `evolucao_v2` renomeia a coluna `date` da OS para `scheduledAt`
-(agora com data **e** hora) preservando os valores já cadastrados. A migração
-`cliente_completo` renomeia a coluna `address` do Cliente para `logradouro` e
-adiciona os campos de endereço/aniversário/e-mail/documento. Em todos os
-casos as colunas novas são opcionais — nenhuma OS, cliente ou despesa
-existente é apagado.
+Isso cria as 7 tabelas no banco Postgres da Neon e popula com um usuário
+admin, um técnico de demonstração e alguns clientes/OS de exemplo.
+
+> Este projeto rodava em SQLite local até 2026-07-11 e foi migrado para
+> PostgreSQL/Neon para funcionar em produção na Vercel (o SQLite grava num
+> arquivo local, que não sobrevive entre deploys/instâncias serverless). Os
+> dados antigos do SQLite (`prisma/dev.db`, se ainda existir na sua máquina)
+> **não são transferidos automaticamente** — o banco novo começa vazio.
 
 **Credenciais de demonstração:**
 - Admin: `admin@empresa.com` / `admin123`
@@ -103,21 +100,47 @@ npx next dev -H 0.0.0.0
 Depois descubra o IP da sua máquina na rede (`ipconfig` no Windows, procure por
 "Endereço IPv4") e acesse `http://SEU-IP:3000` pelo navegador do celular.
 
-Para uso fora de casa/oficina (internet), será necessário publicar o projeto em
-um servidor (Vercel, Railway, VPS, etc.) — nesse caso troque o SQLite por um
-banco hospedado (Postgres, por exemplo) ou mantenha o arquivo SQLite em um
-volume persistente, e ajuste `NEXTAUTH_URL` no `.env` para a URL pública.
+Para uso fora de casa/oficina (internet), publique o projeto na Vercel (ver
+seção 5.1 abaixo) e ajuste `NEXTAUTH_URL` para a URL pública do deploy.
 
-## 5. Como funciona
+## 5. Deploy na Vercel
+
+O projeto já usa Postgres (Neon), então não depende de sistema de arquivos
+local — funciona direto em produção serverless.
+
+1. Suba o projeto pra um repositório Git (GitHub/GitLab/Bitbucket) e importe
+   na Vercel (https://vercel.com/new), ou rode `npx vercel` direto da pasta do
+   projeto.
+2. No painel da Vercel, em **Settings → Environment Variables**, cadastre:
+   - `DATABASE_URL` — connection string **pooled** da Neon.
+   - `DIRECT_URL` — connection string **direta** da Neon.
+   - `NEXTAUTH_SECRET` — um valor aleatório (pode ser o mesmo do `.env` local
+     ou gerar outro com `openssl rand -base64 32`).
+   - `NEXTAUTH_URL` — a URL pública do deploy (ex.: `https://seu-projeto.vercel.app`).
+3. Deploy. O script `build` (`package.json`) já roda
+   `prisma migrate deploy && next build`, então qualquer migration pendente é
+   aplicada automaticamente no banco Neon a cada deploy — não precisa de
+   passo manual.
+4. Se quiser popular o banco de produção com os dados de demonstração, rode
+   `npm run db:seed` localmente uma vez, apontando o `.env` pras variáveis de
+   produção (ou use `vercel env pull` pra baixar as variáveis da Vercel).
+
+## 6. Como funciona
 
 ### Login e papéis
 - **Login** (`/login`): autenticação via NextAuth (credenciais + senha com hash).
-- **Painel** (`/painel`, somente admin): cadastro de clientes, técnicos e
-  ordens de serviço, agenda do dia e financeiro (faturamento + despesas).
+- **Painel** (`/painel`, somente admin): cadastro de clientes, técnicos,
+  parceiros e ordens de serviço, agenda do dia, Visão Geral e financeiro.
 - **Técnico** (`/tecnico`): lista apenas as OS atribuídas ao usuário logado (o
   filtro é feito no servidor, não no navegador), pensada para tela de celular.
-- Um técnico que tentar acessar `/painel` é redirecionado automaticamente para
-  `/tecnico` (bloqueado no `middleware.js` e também nas rotas de API).
+- **Parceiro** (`/parceiro`): mesmo formato do técnico, mas lista só as OS
+  terceirizadas vinculadas àquele parceiro (`parceiroId`). O acesso é criado
+  pelo admin na tela do parceiro (ver "Login do parceiro" abaixo) — o
+  parceiro não se cadastra sozinho.
+- Cada papel só acessa a própria área: um técnico que tentar abrir `/painel`
+  ou `/parceiro`, ou um parceiro que tentar abrir `/painel` ou `/tecnico`, é
+  redirecionado automaticamente pra área dele (bloqueado no `middleware.js` e
+  também nas rotas de API).
 
 ### Fluxo da OS
 `aberta → andamento → concluída`, com um ramo à parte `recusada`:
@@ -136,30 +159,47 @@ separado da data de abertura (`createdAt`, automática). A tela **Agenda**
 (`/painel/agenda`) lista as OS de um dia escolhido, em ordem de horário.
 
 ### Financeiro
-Cada OS tem forma de pagamento (dinheiro/Pix/cartão/boleto), status de
-pagamento (pago/pendente) e vencimento opcional. No card da OS, o **admin**
-tem um botão **"Confirmar pagamento"** para dar baixa manualmente assim que
-recebe o comprovante/confirmação do banco (com opção de desfazer em caso de
-engano) — isso é separado do fluxo aberta/andamento/concluída, pode ser
-confirmado a qualquer momento.
+Cada OS tem forma de pagamento (dinheiro/Pix/cartão/boleto), vencimento
+opcional, e um **valor pago** (`valorPago`) — o status pago/parcial/pendente
+não é escolhido manualmente, é **calculado** a partir de `valorPago` vs o
+valor da OS (`lib/paymentStatus.js`). No card da OS, o **admin** tem um botão
+**"Registrar pagamento"**: digita quanto o cliente pagou (pode ser menos que
+o valor total, registrando um pagamento **parcial**) — se ficar faltando
+algo, um alerta "⚠ Falta receber R$X" aparece no card pra qualquer um que
+veja a OS (admin, técnico ou parceiro). Isso é separado do fluxo
+aberta/andamento/concluída, pode ser registrado a qualquer momento.
 
 A tela **Financeiro** (`/painel/financeiro`) reúne:
 - Faturamento do período filtrado por data e por técnico (total faturado,
-  pago, pendente, quebra por técnico e por parceiro), somando o valor das OS
+  pago — soma real de `valorPago`, já refletindo pagamentos parciais —,
+  pendente, quebra por técnico e por parceiro), somando o valor das OS
   concluídas.
 - **Lançamento de despesas** (combustível, material, manutenção, salário,
   outro): formulário simples (descrição, categoria, valor, data), lista do
   período com opção de remover, e total por categoria.
 - **Comissões** de parceiros e de técnicos (ver seção "Terceirização e
-  comissões" abaixo), calculadas só sobre OS concluídas **e pagas** do
-  período, pra refletir o caixa real.
+  comissões" abaixo), calculadas só sobre OS concluídas **e totalmente
+  pagas** do período (pagamento parcial ainda não gera comissão).
 - **Saldo líquido** do período = total pago − despesas − comissão paga a
   parceiros + comissão recebida de parceiros − comissão paga a técnicos.
-- Botão **Exportar CSV** com as OS e despesas do período (abre direto no
-  Excel/planilhas, sem depender de nenhuma lib de exportação).
+- Botão **Exportar CSV** com as OS e despesas do período, e botão
+  **"Imprimir / salvar PDF"** (mesmo padrão do recibo: `window.print()`,
+  sem lib nova) — o menu superior e os botões somem na impressão, e os
+  cards coloridos viram preto e branco pra não gastar tinta.
 
 O modelo `Despesa` é independente da OS (custos gerais do negócio, não
 atrelados a um atendimento específico).
+
+### Edição de valor e edição geral da OS
+- **Técnico ou parceiro dono** da OS podem editar o **valor do serviço**
+  ("Editar valor do serviço" no card), mas só enquanto ela está **aberta ou
+  em andamento** — depois de concluída, o valor já fechou. Faz sentido: só na
+  hora do atendimento dá pra saber se o serviço é mais simples ou mais
+  complexo do que o combinado por telefone.
+- **Admin** pode editar **qualquer OS já criada, em qualquer status**, pelo
+  botão **"Editar OS"**: tipo de serviço, técnico, valor, data/horário
+  agendado, urgência, forma de pagamento, vencimento e parceria — tudo num
+  modal só (`components/EditarOsModal.jsx`), sem precisar excluir e recriar.
 
 ### Terceirização e comissões
 - **Parceiros** (`/painel/parceiros`): cadastro de terceirizados com quem a
@@ -178,6 +218,16 @@ atrelados a um atendimento específico).
   pensado pra estimular o técnico a faturar mais no mês. O cálculo é sempre
   derivado no relatório (não fica gravado na OS), então mudar as faixas
   recalcula automaticamente os meses seguintes.
+
+### Login do parceiro
+Na tela do parceiro (`/painel/parceiros/[id]`), a seção **"Acesso ao
+sistema"** deixa o admin criar um login (e-mail + senha) pra aquele parceiro
+— reaproveita a mesma tabela `User` de admin/técnico, só com
+`role: "parceiro"` e um `parceiroId` apontando pra qual parceiro aquele login
+representa. Cada parceiro só pode ter um login. Depois de logado, o parceiro
+cai em `/parceiro` (mesmo formato mobile do técnico) e só vê as OS
+vinculadas a ele — pode editar o valor delas (ver acima) e ver a própria
+comissão no card, mas não tem acesso ao financeiro geral da empresa.
 
 ### Visão Geral (dashboard)
 A tela **Visão Geral** (`/painel/visao-geral`) dá um panorama rápido do mês
@@ -251,7 +301,7 @@ momentos de recusa, avanço para "em andamento" e conclusão. Hoje ela só loga
 no console do servidor — quando decidir contratar um provedor, a integração
 real entra só ali dentro.
 
-## 6. Estrutura
+## 7. Estrutura
 
 ```
 app/
@@ -267,7 +317,8 @@ app/
     financeiro/                 faturamento + despesas + comissões + saldo (período/técnico/parceiro)
     visao-geral/                dashboard do mês: pipeline, produção por técnico/parceiro, faixas de comissão
   tecnico/                     visão mobile do técnico (somente as OS dele)
-  ordens/[id]/recibo/          recibo imprimível/PDF (admin ou técnico dono)
+  parceiro/                    visão mobile do parceiro (somente as OS dele, edita valor)
+  ordens/[id]/recibo/          recibo imprimível/PDF (admin, técnico ou parceiro dono)
   api/
     auth/[...nextauth]         rota do NextAuth
     clientes                   GET / POST (cadastro completo) — POST só admin
@@ -275,11 +326,13 @@ app/
     tecnicos                   GET / POST (criar técnico) — só admin
     tecnicos/[id]               DELETE (OS dele ficam sem técnico) — só admin
     parceiros                  GET / POST — só admin
-    parceiros/[id]              GET (parceiro + histórico) / PATCH / DELETE (bloqueia se tiver OS) — só admin
+    parceiros/[id]              GET (parceiro + histórico + login) / PATCH / DELETE (bloqueia se tiver OS) — só admin
+    parceiros/[id]/acesso        POST (cria login do parceiro) — só admin
     faixas-comissao             GET / POST (faixa de comissão do técnico) — só admin
     faixas-comissao/[id]        PATCH / DELETE — só admin
-    ordens                     GET (filtrado por papel) / POST (aceita parceria) — só admin
-    ordens/[id]                PATCH geral (materiais/avaliação/pagamento/parceria; admin edita mais) / DELETE (exclui, só admin)
+    ordens                     GET (filtrado por papel, inclusive parceiro) / POST (aceita parceria) — só admin
+    ordens/[id]                PATCH geral (materiais/avaliação só técnico; valor técnico/parceiro dono até concluir;
+                                admin edita tudo + valorPago) / DELETE (exclui, só admin)
     ordens/[id]/avancar        PATCH aberta -> andamento
     ordens/[id]/recusar        PATCH aberta -> recusada (só técnico dono, motivo obrigatório)
     ordens/[id]/concluir       PATCH andamento -> concluida (assinatura obrigatória)
@@ -289,8 +342,8 @@ app/
     relatorios/financeiro      GET agregado (faturamento + despesas + comissões + saldo) — só admin
     relatorios/dashboard        GET agregado do mês (pipeline + ranking técnico/parceiro) — só admin
 components/
-  Ticket, Stamp, TicketActions  card da OS + botões de ação por status
-  ConcluirOsModal, RecusarOsModal, SignaturePad
+  Ticket, Stamp, TicketActions  card da OS + botões de ação por status/papel
+  ConcluirOsModal, RecusarOsModal, EditarOsModal, SignaturePad
   ClientForm, OsForm, TopBar, EmptyState
   ThemeProvider, ThemeToggle     modo claro/escuro (contexto + botão sol/lua)
 lib/
@@ -300,14 +353,18 @@ lib/
   formatEndereco.js              monta a linha de endereço a partir dos campos estruturados do cliente
   comissaoTecnico.js             calcularFaixa(faixas, totalFaturado) — regra da faixa de comissão do técnico
   exportCsv.js                   downloadCsv(filename, headers, rows) — exportação client-side, sem lib externa
+  paymentStatus.js                getStatusPagamento(os) — deriva pago/parcial/pendente a partir de valorPago
 prisma/                        schema.prisma, seed.js e migrations/
-middleware.js                   protege /painel, /tecnico e /ordens por login/papel
+middleware.js                   protege /painel, /tecnico, /parceiro e /ordens por login/papel
 ```
 
-## 7. Comandos úteis do Prisma
+## 8. Comandos úteis do Prisma
 
 ```
-npx prisma studio         # navegador visual do banco SQLite
+npx prisma studio         # navegador visual do banco Postgres (Neon)
 npx prisma migrate dev    # criar nova migração após mudar o schema (ambiente local)
-npx prisma migrate deploy # aplicar migrações pendentes sem perder dados (ex: produção)
+npx prisma migrate deploy # aplicar migrações pendentes sem perder dados (ex: produção/Vercel)
 ```
+
+⚠️ `npx prisma migrate reset` apaga **todos os dados** do banco apontado pelo `.env` — cuidado
+pra não rodar isso apontando pro banco Neon de produção.

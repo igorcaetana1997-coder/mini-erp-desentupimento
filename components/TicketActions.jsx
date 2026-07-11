@@ -2,16 +2,31 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Ban, Wrench, Star, FileText, RotateCcw, Camera, CircleDollarSign, Undo2, Trash2 } from "lucide-react";
+import {
+  Check,
+  Ban,
+  Wrench,
+  Star,
+  FileText,
+  RotateCcw,
+  Camera,
+  CircleDollarSign,
+  Undo2,
+  Trash2,
+  Pencil,
+} from "lucide-react";
 import ConcluirOsModal from "./ConcluirOsModal";
 import RecusarOsModal from "./RecusarOsModal";
+import EditarOsModal from "./EditarOsModal";
 import { resizeImageToDataUrl } from "@/lib/resizeImage";
+import { getStatusPagamento } from "@/lib/paymentStatus";
 
 export default function TicketActions({
   os,
   role,
   isOwner,
   tecnicos,
+  parceiros = [],
   busy,
   onAvancar,
   onRecusar,
@@ -20,13 +35,20 @@ export default function TicketActions({
   onSalvarMateriais,
   onSalvarAvaliacao,
   onFotoAdicionada,
-  onConfirmarPagamento,
+  onSalvarValor,
+  onRegistrarPagamento,
+  onEditarOs,
   onExcluir,
 }) {
   const [showConcluir, setShowConcluir] = useState(false);
   const [showRecusar, setShowRecusar] = useState(false);
+  const [showEditar, setShowEditar] = useState(false);
   const [editingMateriais, setEditingMateriais] = useState(false);
   const [materiaisDraft, setMateriaisDraft] = useState(os.materiais || "");
+  const [editingValor, setEditingValor] = useState(false);
+  const [valorDraft, setValorDraft] = useState(os.value != null ? String(os.value) : "");
+  const [editingPagamento, setEditingPagamento] = useState(false);
+  const [valorPagoDraft, setValorPagoDraft] = useState("");
   const [reatribuindo, setReatribuindo] = useState(false);
   const [novoTecnico, setNovoTecnico] = useState(os.technicianId || "");
   const [enviandoFoto, setEnviandoFoto] = useState(false);
@@ -35,7 +57,13 @@ export default function TicketActions({
   const fileInputRef = useRef(null);
 
   const isAdmin = role === "admin";
-  const canAct = isAdmin || isOwner;
+  // Ações operacionais (avançar/recusar/concluir/materiais/fotos/avaliação) continuam
+  // só pra admin ou o técnico dono — parceiro não opera o fluxo do serviço.
+  const canOperate = isAdmin || (isOwner && role === "tecnico");
+  // Editar o valor é mais amplo: técnico OU parceiro dono, além do admin.
+  const podeEditarValor = isOwner && (role === "tecnico" || role === "parceiro");
+  const valorEditavelAgora = podeEditarValor && ["aberta", "andamento"].includes(os.status);
+  const { status: statusPagamento, faltante } = getStatusPagamento(os);
 
   const handleFotoSelecionada = async (e) => {
     const file = e.target.files?.[0];
@@ -62,7 +90,7 @@ export default function TicketActions({
 
   return (
     <div className="flex flex-col gap-1.5">
-      {os.status === "aberta" && canAct && (
+      {os.status === "aberta" && canOperate && (
         <div className="flex gap-1.5">
           <button
             type="button"
@@ -85,7 +113,7 @@ export default function TicketActions({
         </div>
       )}
 
-      {os.status === "andamento" && canAct && (
+      {os.status === "andamento" && canOperate && (
         <button
           type="button"
           onClick={() => setShowConcluir(true)}
@@ -136,34 +164,72 @@ export default function TicketActions({
         </div>
       )}
 
-      {isAdmin && os.status !== "recusada" && (
+      {isAdmin && onRegistrarPagamento && os.status !== "recusada" && os.value != null && (
         <div>
-          {os.paymentStatus === "pago" ? (
+          {statusPagamento === "pago" ? (
             <div className="flex items-center justify-between gap-2 bg-[#1E7A52]/10 border border-[#1E7A52]/30 px-2 py-1.5">
-              <span className="text-[11px] font-semibold text-[#1E7A52]">Pagamento confirmado</span>
+              <span className="text-[11px] font-semibold text-[#1E7A52]">
+                Pagamento confirmado (R$ {Number(os.value).toFixed(2)})
+              </span>
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => onConfirmarPagamento(os.id, "pendente")}
+                onClick={() => onRegistrarPagamento(os.id, 0)}
                 className="flex items-center gap-1 text-[11px] text-[rgb(var(--stone))] hover:text-[#A02018] transition-colors disabled:opacity-50"
               >
                 <Undo2 size={12} /> Desfazer
               </button>
             </div>
-          ) : (
+          ) : !editingPagamento ? (
             <button
               type="button"
-              disabled={busy}
-              onClick={() => onConfirmarPagamento(os.id, "pago")}
+              onClick={() => {
+                setValorPagoDraft(String(os.value));
+                setEditingPagamento(true);
+              }}
               className="w-full flex items-center justify-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide py-2 hover:bg-[#175F40] transition-colors disabled:opacity-50"
             >
-              <CircleDollarSign size={14} /> Confirmar pagamento
+              <CircleDollarSign size={14} />
+              {statusPagamento === "parcial"
+                ? `Registrar pagamento (falta R$ ${faltante.toFixed(2)})`
+                : "Registrar pagamento"}
             </button>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <input
+                autoFocus
+                type="number"
+                value={valorPagoDraft}
+                onChange={(e) => setValorPagoDraft(e.target.value)}
+                placeholder="Valor recebido (R$)"
+                className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+              />
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingPagamento(false)}
+                  className="flex-1 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-[11px] font-bold uppercase py-1.5 hover:bg-[#142D65]/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    onRegistrarPagamento(os.id, valorPagoDraft);
+                    setEditingPagamento(false);
+                  }}
+                  className="flex-1 bg-[#1E7A52] text-[#F2EFE9] text-[11px] font-bold uppercase py-1.5 hover:bg-[#175F40] transition-colors disabled:opacity-50"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {canAct && os.status !== "concluida" && os.status !== "recusada" && (
+      {canOperate && os.status !== "concluida" && os.status !== "recusada" && (
         <div>
           {!editingMateriais ? (
             <button
@@ -208,7 +274,55 @@ export default function TicketActions({
         </div>
       )}
 
-      {canAct && os.status !== "recusada" && (
+      {valorEditavelAgora && onSalvarValor && (
+        <div>
+          {!editingValor ? (
+            <button
+              type="button"
+              onClick={() => {
+                setValorDraft(os.value != null ? String(os.value) : "");
+                setEditingValor(true);
+              }}
+              className="flex items-center gap-1.5 text-[11px] text-[rgb(var(--ink))] hover:text-[rgb(var(--ink-strong)/1)] transition-colors"
+            >
+              <CircleDollarSign size={12} /> Editar valor do serviço
+            </button>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <input
+                autoFocus
+                type="number"
+                value={valorDraft}
+                onChange={(e) => setValorDraft(e.target.value)}
+                placeholder="Valor (R$)"
+                className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+              />
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingValor(false)}
+                  className="flex-1 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-[11px] font-bold uppercase py-1.5 hover:bg-[#142D65]/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    onSalvarValor(os.id, valorDraft);
+                    setEditingValor(false);
+                  }}
+                  className="flex-1 bg-[#1E7A52] text-[#F2EFE9] text-[11px] font-bold uppercase py-1.5 hover:bg-[#175F40] transition-colors disabled:opacity-50"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {canOperate && os.status !== "recusada" && (
         <div className="flex flex-col gap-1.5">
           {Array.isArray(os.fotos) && os.fotos.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -243,26 +357,28 @@ export default function TicketActions({
         </div>
       )}
 
-      {os.status === "concluida" && canAct && (
+      {os.status === "concluida" && (
         <div className="flex flex-col gap-2">
-          <div>
-            <p className="text-[11px] text-[rgb(var(--ink))] mb-1">Avaliação do serviço:</p>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onSalvarAvaliacao(os.id, n === os.avaliacaoNota ? null : n)}
-                >
-                  <Star
-                    size={18}
-                    className={n <= (os.avaliacaoNota || 0) ? "text-[#E8A33D] fill-[#E8A33D]" : "text-[rgb(var(--ink-strong)/0.25)]"}
-                  />
-                </button>
-              ))}
+          {canOperate && (
+            <div>
+              <p className="text-[11px] text-[rgb(var(--ink))] mb-1">Avaliação do serviço:</p>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onSalvarAvaliacao(os.id, n === os.avaliacaoNota ? null : n)}
+                  >
+                    <Star
+                      size={18}
+                      className={n <= (os.avaliacaoNota || 0) ? "text-[#E8A33D] fill-[#E8A33D]" : "text-[rgb(var(--ink-strong)/0.25)]"}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           <Link
             href={`/ordens/${os.id}/recibo`}
             target="_blank"
@@ -271,6 +387,16 @@ export default function TicketActions({
             <FileText size={14} /> Ver recibo / gerar PDF
           </Link>
         </div>
+      )}
+
+      {isAdmin && onEditarOs && (
+        <button
+          type="button"
+          onClick={() => setShowEditar(true)}
+          className="flex items-center justify-center gap-1.5 border-2 border-[rgb(var(--border-strong)/1)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide py-2 hover:bg-[#142D65]/5 transition-colors"
+        >
+          <Pencil size={14} /> Editar OS
+        </button>
       )}
 
       {isAdmin && onExcluir && (
@@ -328,6 +454,20 @@ export default function TicketActions({
           onConfirm={(motivo) => {
             onRecusar(os.id, motivo);
             setShowRecusar(false);
+          }}
+        />
+      )}
+
+      {showEditar && (
+        <EditarOsModal
+          os={os}
+          tecnicos={tecnicos}
+          parceiros={parceiros}
+          saving={busy}
+          onCancel={() => setShowEditar(false)}
+          onConfirm={(payload) => {
+            onEditarOs(os.id, payload);
+            setShowEditar(false);
           }}
         />
       )}

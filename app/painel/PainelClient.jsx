@@ -165,8 +165,12 @@ export default function PainelClient() {
     patchOs(id, `/api/ordens/${id}`, { avaliacaoNota }, "Não foi possível salvar a avaliação.");
   const handleFotoAdicionada = (id, foto) =>
     setOsList((prev) => prev.map((os) => (os.id === id ? { ...os, fotos: [...(os.fotos || []), foto] } : os)));
-  const handleConfirmarPagamento = (id, paymentStatus) =>
-    patchOs(id, `/api/ordens/${id}`, { paymentStatus }, "Não foi possível atualizar o pagamento.");
+  const handleSalvarValor = (id, value) =>
+    patchOs(id, `/api/ordens/${id}`, { value }, "Não foi possível salvar o valor.");
+  const handleRegistrarPagamento = (id, valorPago) =>
+    patchOs(id, `/api/ordens/${id}`, { valorPago }, "Não foi possível registrar o pagamento.");
+  const handleEditarOs = (id, payload) =>
+    patchOs(id, `/api/ordens/${id}`, payload, "Não foi possível salvar as alterações da OS.");
 
   const handleExcluir = async (id) => {
     setBusyId(id);
@@ -516,6 +520,7 @@ export default function PainelClient() {
                     role="admin"
                     isOwner={false}
                     tecnicos={tecnicos}
+                    parceiros={parceiros}
                     busy={busyId === os.id}
                     onAvancar={handleAvancar}
                     onRecusar={handleRecusar}
@@ -524,7 +529,8 @@ export default function PainelClient() {
                     onSalvarMateriais={handleSalvarMateriais}
                     onSalvarAvaliacao={handleSalvarAvaliacao}
                     onFotoAdicionada={handleFotoAdicionada}
-                    onConfirmarPagamento={handleConfirmarPagamento}
+                    onRegistrarPagamento={handleRegistrarPagamento}
+                    onEditarOs={handleEditarOs}
                     onExcluir={handleExcluir}
                   />
                 }
