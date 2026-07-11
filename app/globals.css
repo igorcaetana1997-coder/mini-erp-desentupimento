@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --page-bg: 218 212 198; /* #DAD4C6 */
+  --surface: 242 239 233; /* #F2EFE9 */
+  --input-bg: 255 255 255; /* branco */
+  --ink-strong: 20 45 101; /* #142D65 navy */
+  --ink: 92 88 79; /* #5c584f */
+  --stone: 139 132 120; /* #8B8478 */
+  --border-strong: 20 45 101; /* navy */
+}
+
+.dark {
+  color-scheme: dark;
+  --page-bg: 10 14 22; /* quase preto */
+  --surface: 26 33 48; /* slate escuro (cards/fichas) */
+  --input-bg: 32 40 56; /* levemente mais claro, pra inputs */
+  --ink-strong: 224 231 245; /* quase branco, títulos */
+  --ink: 176 184 199; /* cinza-azulado claro, texto */
+  --stone: 138 148 168; /* texto secundário/apagado */
+  --border-strong: 86 107 153; /* navy claro, visível no escuro */
+}
+
+html,
+body {
+  background: rgb(var(--page-bg));
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+}

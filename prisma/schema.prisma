@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   // "admin" | "tecnico"
+  phone     String?
+  createdAt DateTime @default(now())
+
+  ordens OrdemServico[]
+}
+
+model Cliente {
+  id             String    @id @default(cuid())
+  name           String
+  phone          String
+  email          String?
+  documento      String? // CPF ou CNPJ
+  dataNascimento DateTime? // aniversário do cliente
+  cep            String?
+  logradouro     String?
+  numero         String?
+  complemento    String?
+  bairro         String?
+  cidade         String?
+  uf             String?
+  observacoes    String?
+  createdAt      DateTime  @default(now())
+
+  ordens OrdemServico[]
+}
+
+model OrdemServico {
+  id           String   @id @default(cuid())
+  clienteId    String
+  cliente      Cliente  @relation(fields: [clienteId], references: [id])
+  serviceType  String
+  technicianId String?
+  technician   User?    @relation(fields: [technicianId], references: [id])
+  value        Float?
+  scheduledAt  DateTime
+  urgent       Boolean  @default(false)
+  status       String   @default("aberta") // "aberta" | "andamento" | "concluida" | "recusada"
+
+  // Financeiro
+  paymentMethod String? // "dinheiro" | "pix" | "cartao" | "boleto"
+  paymentStatus String  @default("pendente") // "pendente" | "pago"
+  dueDate       DateTime?
+
+  // Terceirização
+  parceiroId         String?
+  parceiro           Parceiro? @relation(fields: [parceiroId], references: [id])
+  parceriaTipo       String? // "repassado" (eu recebo comissão) | "recebido" (eu pago comissão)
+  parceriaPercentual Float?
+
+  // Materiais e conclusão
+  materiais         String?
+  assinaturaCliente String? // data URL base64 (PNG) do canvas de assinatura
+  avaliacaoNota     Int?    // 1 a 5, opcional
+
+  // Recusa
+  motivoRecusa String?
+  recusadaEm   DateTime?
+
+  fotos     FotoServico[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model FotoServico {
+  id             String       @id @default(cuid())
+  ordemServicoId String
+  ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id])
+  data           String // data URL base64 (JPEG redimensionado no navegador)
+  createdAt      DateTime     @default(now())
+}
+
+model Despesa {
+  id        String   @id @default(cuid())
+  descricao String
+  categoria String? // "Material" | "Combustível" | "Manutenção" | "Salário" | "Outro"
+  valor     Float
+  data      DateTime
+  createdAt DateTime @default(now())
+}
+
+model Parceiro {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  documento   String?
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  ordens OrdemServico[]
+}
+
+model FaixaComissao {
+  id         String   @id @default(cuid())
+  minValor   Float // fatura a partir desse valor mensal, entra nessa faixa
+  percentual Float // % aplicado sobre TODO o faturamento do período
+  createdAt  DateTime @default(now())
+}
