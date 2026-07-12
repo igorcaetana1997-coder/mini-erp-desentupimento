@@ -246,7 +246,7 @@ export default function PainelClient() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Clientes */}
         <div>
           <div className="flex items-center justify-between mb-3">

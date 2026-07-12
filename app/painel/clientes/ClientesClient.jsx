@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Search } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ClientForm from "@/components/ClientForm";
 import { formatEndereco } from "@/lib/formatEndereco";
@@ -15,6 +15,7 @@ export default function ClientesClient() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -64,6 +65,20 @@ export default function ClientesClient() {
     }
   };
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((c) => {
+      return (
+        c.name?.toLowerCase().includes(q) ||
+        c.phone?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.documento?.toLowerCase().includes(q) ||
+        formatEndereco(c).toLowerCase().includes(q)
+      );
+    });
+  }, [clients, query]);
+
   if (!loaded) {
     return <div className="max-w-3xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -88,7 +103,7 @@ export default function ClientesClient() {
 
       <div className="flex items-center justify-between mb-3">
         <h1 className="font-black uppercase tracking-tight text-xl text-[rgb(var(--ink-strong)/1)]">
-          Clientes <span className="text-[rgb(var(--stone))] font-normal">({clients.length})</span>
+          Clientes <span className="text-[rgb(var(--stone))] font-normal">({filtered.length})</span>
         </h1>
         <button
           onClick={() => setShowForm(true)}
@@ -100,11 +115,24 @@ export default function ClientesClient() {
 
       {showForm && <ClientForm saving={saving} onSave={addClient} onCancel={() => setShowForm(false)} />}
 
+      <div className="flex items-center gap-2 bg-[rgb(var(--input-bg)/0.70)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 mb-3">
+        <Search size={16} className="text-[rgb(var(--stone))]" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por nome, telefone, e-mail, documento ou endereço"
+          className="bg-transparent outline-none text-sm flex-1 text-[rgb(var(--ink-strong)/1)] placeholder:text-[rgb(var(--stone))]"
+        />
+      </div>
+
       <div className="flex flex-col gap-2">
         {clients.length === 0 && !showForm && (
           <EmptyState text="Nenhum cliente cadastrado ainda. Clique em Novo para começar." />
         )}
-        {clients.map((c) => (
+        {clients.length > 0 && filtered.length === 0 && (
+          <EmptyState text="Nenhum cliente encontrado para esse filtro." />
+        )}
+        {filtered.map((c) => (
           <div
             key={c.id}
             className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors"

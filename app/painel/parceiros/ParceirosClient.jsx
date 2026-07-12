@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Handshake, Trash2 } from "lucide-react";
+import { ArrowLeft, Handshake, Trash2, Search } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 
 export default function ParceirosClient() {
@@ -13,6 +13,7 @@ export default function ParceirosClient() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -62,6 +63,19 @@ export default function ParceirosClient() {
     }
   };
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return parceiros;
+    return parceiros.filter((p) => {
+      return (
+        p.name?.toLowerCase().includes(q) ||
+        p.email?.toLowerCase().includes(q) ||
+        p.phone?.toLowerCase().includes(q) ||
+        p.documento?.toLowerCase().includes(q)
+      );
+    });
+  }, [parceiros, query]);
+
   if (!loaded) {
     return <div className="max-w-3xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -86,7 +100,7 @@ export default function ParceirosClient() {
 
       <div className="flex items-center justify-between mb-3">
         <h1 className="font-black uppercase tracking-tight text-xl text-[rgb(var(--ink-strong)/1)]">
-          Parceiros <span className="text-[rgb(var(--stone))] font-normal">({parceiros.length})</span>
+          Parceiros <span className="text-[rgb(var(--stone))] font-normal">({filtered.length})</span>
         </h1>
         <button
           onClick={() => setShowForm(true)}
@@ -98,11 +112,24 @@ export default function ParceirosClient() {
 
       {showForm && <ParceiroForm saving={saving} onSave={addParceiro} onCancel={() => setShowForm(false)} />}
 
+      <div className="flex items-center gap-2 bg-[rgb(var(--input-bg)/0.70)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 mb-3">
+        <Search size={16} className="text-[rgb(var(--stone))]" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por nome, telefone, e-mail ou documento"
+          className="bg-transparent outline-none text-sm flex-1 text-[rgb(var(--ink-strong)/1)] placeholder:text-[rgb(var(--stone))]"
+        />
+      </div>
+
       <div className="flex flex-col gap-2">
         {parceiros.length === 0 && !showForm && (
           <EmptyState text="Nenhum parceiro/terceirizado cadastrado ainda." />
         )}
-        {parceiros.map((p) => (
+        {parceiros.length > 0 && filtered.length === 0 && (
+          <EmptyState text="Nenhum parceiro encontrado para esse filtro." />
+        )}
+        {filtered.map((p) => (
           <div
             key={p.id}
             className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors"

@@ -125,7 +125,7 @@ export default function FinanceiroClient() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <h1 className="font-black uppercase tracking-tight text-[rgb(var(--ink-strong)/1)] text-xl">Financeiro</h1>
         {report && (
           <div className="print:hidden flex gap-2">
@@ -316,7 +316,7 @@ export default function FinanceiroClient() {
                   placeholder="Descrição (ex: troca de óleo da van)"
                   className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
@@ -333,7 +333,7 @@ export default function FinanceiroClient() {
                     value={valor}
                     onChange={(e) => setValor(e.target.value)}
                     placeholder="Valor (R$)"
-                    className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] w-32"
+                    className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] sm:w-32"
                   />
                   <input
                     type="date"
@@ -387,36 +387,63 @@ export default function FinanceiroClient() {
           {report.ordens.length === 0 ? (
             <EmptyState text="Nenhuma OS concluída nesse período/filtro." />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)]">
-                <thead>
-                  <tr className="bg-[#142D65]/5 text-left text-[11px] uppercase text-[rgb(var(--ink))]">
-                    <th className="px-2 py-1.5">Data</th>
-                    <th className="px-2 py-1.5">Cliente</th>
-                    <th className="px-2 py-1.5">Técnico</th>
-                    <th className="px-2 py-1.5">Pagamento</th>
-                    <th className="px-2 py-1.5 text-right">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.ordens.map((os) => (
-                    <tr key={os.id} className="border-t border-[rgb(var(--border-strong)/0.1)]">
-                      <td className="px-2 py-1.5 font-mono text-xs">
+            <>
+              {/* Celular: lista de cards (mesmo padrão visual das despesas acima) */}
+              <div className="sm:hidden flex flex-col gap-1">
+                {report.ordens.map((os) => (
+                  <div
+                    key={os.id}
+                    className="flex items-center justify-between bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.15)] px-3 py-1.5 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[rgb(var(--ink-strong)/1)] truncate">{os.cliente?.name}</p>
+                      <p className="text-[11px] text-[rgb(var(--stone))]">
                         {new Date(os.scheduledAt).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-                      </td>
-                      <td className="px-2 py-1.5">{os.cliente?.name}</td>
-                      <td className="px-2 py-1.5">{os.technician?.name || "—"}</td>
-                      <td className="px-2 py-1.5">
-                        <span className={STATUS_CLASSES[getStatusPagamento(os).status]}>
-                          {STATUS_LABELS[getStatusPagamento(os).status]}
-                        </span>
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-bold">{formatMoney(os.value)}</td>
+                        {os.technician?.name ? ` — ${os.technician.name}` : ""}
+                      </p>
+                      <span className={STATUS_CLASSES[getStatusPagamento(os).status]}>
+                        {STATUS_LABELS[getStatusPagamento(os).status]}
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-[rgb(var(--ink-strong)/1)] shrink-0 ml-2">
+                      {formatMoney(os.value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop/tablet: tabela */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)]">
+                  <thead>
+                    <tr className="bg-[#142D65]/5 text-left text-[11px] uppercase text-[rgb(var(--ink))]">
+                      <th className="px-2 py-1.5">Data</th>
+                      <th className="px-2 py-1.5">Cliente</th>
+                      <th className="px-2 py-1.5">Técnico</th>
+                      <th className="px-2 py-1.5">Pagamento</th>
+                      <th className="px-2 py-1.5 text-right">Valor</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {report.ordens.map((os) => (
+                      <tr key={os.id} className="border-t border-[rgb(var(--border-strong)/0.1)]">
+                        <td className="px-2 py-1.5 font-mono text-xs">
+                          {new Date(os.scheduledAt).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+                        </td>
+                        <td className="px-2 py-1.5">{os.cliente?.name}</td>
+                        <td className="px-2 py-1.5">{os.technician?.name || "—"}</td>
+                        <td className="px-2 py-1.5">
+                          <span className={STATUS_CLASSES[getStatusPagamento(os).status]}>
+                            {STATUS_LABELS[getStatusPagamento(os).status]}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono font-bold">{formatMoney(os.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </>
       )}

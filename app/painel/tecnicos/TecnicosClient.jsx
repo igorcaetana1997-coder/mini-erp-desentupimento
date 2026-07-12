@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, UserPlus, Trash2 } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Search } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 
 export default function TecnicosClient() {
@@ -13,6 +13,7 @@ export default function TecnicosClient() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -62,6 +63,18 @@ export default function TecnicosClient() {
     }
   };
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return tecnicos;
+    return tecnicos.filter((t) => {
+      return (
+        t.name?.toLowerCase().includes(q) ||
+        t.email?.toLowerCase().includes(q) ||
+        t.phone?.toLowerCase().includes(q)
+      );
+    });
+  }, [tecnicos, query]);
+
   if (!loaded) {
     return <div className="max-w-3xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -86,7 +99,7 @@ export default function TecnicosClient() {
 
       <div className="flex items-center justify-between mb-3">
         <h1 className="font-black uppercase tracking-tight text-xl text-[rgb(var(--ink-strong)/1)]">
-          Técnicos <span className="text-[rgb(var(--stone))] font-normal">({tecnicos.length})</span>
+          Técnicos <span className="text-[rgb(var(--stone))] font-normal">({filtered.length})</span>
         </h1>
         <button
           onClick={() => setShowForm(true)}
@@ -98,9 +111,22 @@ export default function TecnicosClient() {
 
       {showForm && <TecnicoForm saving={saving} onSave={addTecnico} onCancel={() => setShowForm(false)} />}
 
+      <div className="flex items-center gap-2 bg-[rgb(var(--input-bg)/0.70)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 mb-3">
+        <Search size={16} className="text-[rgb(var(--stone))]" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por nome, e-mail ou telefone"
+          className="bg-transparent outline-none text-sm flex-1 text-[rgb(var(--ink-strong)/1)] placeholder:text-[rgb(var(--stone))]"
+        />
+      </div>
+
       <div className="flex flex-col gap-2">
         {tecnicos.length === 0 && !showForm && <EmptyState text="Nenhum técnico cadastrado ainda." />}
-        {tecnicos.map((t) => (
+        {tecnicos.length > 0 && filtered.length === 0 && (
+          <EmptyState text="Nenhum técnico encontrado para esse filtro." />
+        )}
+        {filtered.map((t) => (
           <div
             key={t.id}
             className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2"

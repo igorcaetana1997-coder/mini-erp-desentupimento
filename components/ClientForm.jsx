@@ -87,7 +87,7 @@ export default function ClientForm({ onSave, onCancel, saving }) {
         className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
       />
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
@@ -100,12 +100,12 @@ export default function ClientForm({ onSave, onCancel, saving }) {
             type="date"
             value={dataNascimento}
             onChange={(e) => setDataNascimento(e.target.value)}
-            className="block border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            className="block w-full border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
           />
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="email"
           value={email}
@@ -139,12 +139,12 @@ export default function ClientForm({ onSave, onCancel, saving }) {
         className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
       />
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           value={numero}
           onChange={(e) => setNumero(e.target.value)}
           placeholder="Número"
-          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] w-24"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] sm:w-24"
         />
         <input
           value={complemento}
@@ -161,7 +161,7 @@ export default function ClientForm({ onSave, onCancel, saving }) {
         className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
       />
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           value={cidade}
           onChange={(e) => setCidade(e.target.value)}
@@ -171,7 +171,7 @@ export default function ClientForm({ onSave, onCancel, saving }) {
         <select
           value={uf}
           onChange={(e) => setUf(e.target.value)}
-          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] w-20"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] sm:w-20"
         >
           <option value="">UF</option>
           {UF_OPTIONS.map((sigla) => (
