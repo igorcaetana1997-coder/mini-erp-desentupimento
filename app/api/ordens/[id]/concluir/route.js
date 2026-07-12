@@ -45,7 +45,7 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Assinatura do cliente é obrigatória para concluir" }, { status: 400 });
   }
 
-  const data = { status: "concluida", assinaturaCliente };
+  const data = { status: "concluida", assinaturaCliente, concluidaEm: new Date() };
 
   if (typeof body.materiais === "string") data.materiais = body.materiais.trim() || null;
 

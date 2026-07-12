@@ -122,6 +122,10 @@ local — funciona direto em produção serverless.
      para enviar o e-mail de "esqueci minha senha".
    - `NEXT_PUBLIC_SENTRY_DSN` — DSN do projeto no [Sentry](https://sentry.io) (aba
      "Configure Next.js SDK" → "Copy DSN"), usado para monitoramento de erros.
+   - `CRON_SECRET` — valor aleatório que protege a rota do cron diário de WhatsApp
+     (`openssl rand -base64 32`).
+   - `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN` — **opcionais**; só preencha quando
+     decidir ativar a automação de WhatsApp (ver seção 6).
 3. Deploy. O script `build` (`package.json`) já roda
    `prisma migrate deploy && next build`, então qualquer migration pendente é
    aplicada automaticamente no banco Neon a cada deploy — não precisa de
@@ -323,14 +327,30 @@ ou técnico) e um filtro por status (aberta/andamento/concluída/recusada), igua
 espírito ao filtro já usado nas visões de técnico/parceiro — filtragem no navegador,
 sem chamada nova à API.
 
-### Notificações automáticas (WhatsApp/SMS) — não implementado, só estruturado
-Por pedido explícito, **não há envio automático** de mensagens (isso depende
-de um serviço pago como Twilio ou Z-API). O que existe é um ponto de extensão
-pronto: `lib/notifications.js` exporta `notifyClienteStatusChange(evento, {
-cliente, os })`, chamada (sem quebrar o fluxo principal se falhar) nos
-momentos de recusa, avanço para "em andamento" e conclusão. Hoje ela só loga
-no console do servidor — quando decidir contratar um provedor, a integração
-real entra só ali dentro.
+### Notificações automáticas de status (WhatsApp/SMS) — não implementado, só estruturado
+`lib/notifications.js` exporta `notifyClienteStatusChange(evento, { cliente, os })`, chamada (sem
+quebrar o fluxo principal se falhar) nos momentos de recusa, avanço para "em andamento" e
+conclusão. Hoje ela só loga no console do servidor — é um ponto de extensão pronto, mas separado
+da automação agendada descrita abaixo.
+
+### Automação de WhatsApp: acompanhamento pós-serviço e aniversário do cliente
+Duas mensagens automáticas, disparadas 1x por dia por um **Vercel Cron Job**
+(`vercel.json` → `app/api/cron/notificacoes-diarias/route.js`, protegida por `CRON_SECRET`):
+
+- **Acompanhamento pós-serviço**: 15 dias depois de uma OS ser concluída (`OrdemServico.concluidaEm`),
+  pergunta ao cliente se ficou tudo certo. Cada OS só recebe essa mensagem uma vez
+  (`OrdemServico.followUpEnviadoEm`).
+- **Aniversário**: no dia do aniversário do cliente (`Cliente.dataNascimento`), manda uma mensagem
+  de parabéns. Cada cliente só recebe uma vez por ano (`Cliente.ultimoParabensAno`).
+
+O envio de verdade acontece via **Z-API** (`lib/whatsapp.js`), mas fica **dormente** enquanto as
+variáveis `ZAPI_INSTANCE_ID`/`ZAPI_TOKEN`/`ZAPI_CLIENT_TOKEN` não estiverem preenchidas — a rota
+do cron confere isso logo no início e, se não configurado, responde
+`{ enviado: false, motivo: "Z-API não configurado ainda" }` sem tocar no banco (nenhuma OS ou
+aniversário é marcado como "enviado" só porque o cron rodou desligado). Assim que as 3 variáveis
+forem cadastradas (crie a instância em [z-api.io](https://z-api.io) e escaneie o QR Code com o
+WhatsApp da empresa), a automação passa a funcionar sozinha a partir do próximo disparo diário,
+sem precisar mexer em nenhum código.
 
 ## 7. Estrutura
 
@@ -379,6 +399,7 @@ app/
     despesas/[id]              DELETE — só admin
     relatorios/financeiro      GET agregado (faturamento + despesas + comissões + saldo) — só admin
     relatorios/dashboard        GET agregado do mês (pipeline + ranking técnico/parceiro) — só admin
+    cron/notificacoes-diarias   GET (protegida por CRON_SECRET) — dispara follow-up 15 dias + aniversário via Z-API
 components/
   Ticket, Stamp, TicketActions  card da OS + botões de ação por status/papel
   ConcluirOsModal, RecusarOsModal, EditarOsModal, SignaturePad
@@ -394,8 +415,10 @@ lib/
   paymentStatus.js                getStatusPagamento(os) — deriva pago/parcial/pendente a partir de valorPago
   email.js                        sendPasswordResetEmail(to, resetUrl) via Resend
   passwordReset.js                generateResetToken() / hashToken() — token de redefinição de senha
+  whatsapp.js                     isWhatsappConfigured() / sendWhatsappMessage() via Z-API (ver seção 6)
 prisma/                        schema.prisma, seed.js e migrations/
 middleware.js                   protege /painel, /tecnico, /parceiro e /ordens por login/papel
+vercel.json                     agendamento do cron diário de notificações (Vercel Cron Jobs)
 ```
 
 ## 8. Comandos úteis do Prisma
