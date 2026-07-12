@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Phone, Mail, IdCard, StickyNote, KeyRound } from "lucide-react";
+import { ArrowLeft, Phone, Mail, IdCard, StickyNote, KeyRound, Pencil, X } from "lucide-react";
 import Ticket from "@/components/Ticket";
 import EmptyState from "@/components/EmptyState";
 
@@ -15,6 +15,13 @@ export default function ParceiroDetalheClient({ parceiroId }) {
   const [usernameAcesso, setUsernameAcesso] = useState("");
   const [senhaAcesso, setSenhaAcesso] = useState("");
   const [savingAcesso, setSavingAcesso] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [savingEdicao, setSavingEdicao] = useState(false);
+  const [nomeEdicao, setNomeEdicao] = useState("");
+  const [phoneEdicao, setPhoneEdicao] = useState("");
+  const [emailEdicao, setEmailEdicao] = useState("");
+  const [documentoEdicao, setDocumentoEdicao] = useState("");
+  const [observacoesEdicao, setObservacoesEdicao] = useState("");
 
   const load = async () => {
     try {
@@ -55,6 +62,41 @@ export default function ParceiroDetalheClient({ parceiroId }) {
     }
   };
 
+  const abrirEdicao = () => {
+    setNomeEdicao(parceiro.name || "");
+    setPhoneEdicao(parceiro.phone || "");
+    setEmailEdicao(parceiro.email || "");
+    setDocumentoEdicao(parceiro.documento || "");
+    setObservacoesEdicao(parceiro.observacoes || "");
+    setEditando(true);
+  };
+
+  const salvarEdicao = async () => {
+    if (!nomeEdicao.trim()) return;
+    setSavingEdicao(true);
+    try {
+      const res = await fetch(`/api/parceiros/${parceiroId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nomeEdicao.trim(),
+          phone: phoneEdicao.trim(),
+          email: emailEdicao.trim(),
+          documento: documentoEdicao.trim(),
+          observacoes: observacoesEdicao.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Não foi possível salvar as alterações.");
+      setEditando(false);
+      await load();
+    } catch (e) {
+      setError(e.message || "Não foi possível salvar as alterações.");
+    } finally {
+      setSavingEdicao(false);
+    }
+  };
+
   if (!loaded) {
     return <div className="max-w-3xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -86,7 +128,16 @@ export default function ParceiroDetalheClient({ parceiroId }) {
       )}
 
       <div className="bg-[rgb(var(--input-bg))] border-2 border-[rgb(var(--border-strong)/1)] p-4 mb-6">
-        <h1 className="font-black uppercase text-xl text-[rgb(var(--ink-strong)/1)] tracking-tight">{parceiro.name}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="font-black uppercase text-xl text-[rgb(var(--ink-strong)/1)] tracking-tight">{parceiro.name}</h1>
+          <button
+            type="button"
+            onClick={abrirEdicao}
+            className="flex items-center gap-1 text-[11px] font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline shrink-0"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        </div>
         <div className="flex flex-col gap-1 mt-2 text-sm text-[rgb(var(--ink))]">
           {parceiro.phone && (
             <span className="flex items-center gap-1.5">
@@ -188,6 +239,59 @@ export default function ParceiroDetalheClient({ parceiroId }) {
           <Ticket key={os.id} os={os} />
         ))}
       </div>
+
+      {editando && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[rgb(var(--surface))] border-2 border-[rgb(var(--border-strong)/1)] w-full max-w-md p-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="font-black uppercase text-[rgb(var(--ink-strong)/1)]">Editar parceiro</p>
+              <button onClick={() => setEditando(false)} type="button">
+                <X size={18} className="text-[rgb(var(--stone))]" />
+              </button>
+            </div>
+            <input
+              value={nomeEdicao}
+              onChange={(e) => setNomeEdicao(e.target.value)}
+              placeholder="Nome do parceiro/empresa terceirizada"
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            />
+            <input
+              value={phoneEdicao}
+              onChange={(e) => setPhoneEdicao(e.target.value)}
+              placeholder="Telefone (opcional)"
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            />
+            <input
+              type="email"
+              value={emailEdicao}
+              onChange={(e) => setEmailEdicao(e.target.value)}
+              placeholder="E-mail (opcional)"
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            />
+            <input
+              value={documentoEdicao}
+              onChange={(e) => setDocumentoEdicao(e.target.value)}
+              placeholder="CPF/CNPJ (opcional)"
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            />
+            <textarea
+              value={observacoesEdicao}
+              onChange={(e) => setObservacoesEdicao(e.target.value)}
+              placeholder="Observações (opcional)"
+              rows={2}
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] resize-none"
+            />
+            <button
+              onClick={salvarEdicao}
+              disabled={savingEdicao}
+              type="button"
+              className="mt-1 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase py-2.5 hover:bg-[#203D7B] transition-colors disabled:opacity-50"
+            >
+              {savingEdicao ? "Salvando…" : "Salvar alterações"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

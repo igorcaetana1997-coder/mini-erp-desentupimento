@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Phone, StickyNote, Mail, IdCard, Cake } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, StickyNote, Mail, IdCard, Cake, Pencil } from "lucide-react";
 import Ticket from "@/components/Ticket";
 import EmptyState from "@/components/EmptyState";
+import ClientForm from "@/components/ClientForm";
 import { formatEndereco } from "@/lib/formatEndereco";
 
 function formatDate(value) {
@@ -16,20 +17,45 @@ export default function ClienteDetalheClient({ clienteId }) {
   const [cliente, setCliente] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
+  const [editando, setEditando] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorEdicao, setErrorEdicao] = useState("");
+
+  const load = async () => {
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}`);
+      if (!res.ok) throw new Error();
+      setCliente(await res.json());
+    } catch {
+      setError("Não foi possível carregar o cliente.");
+    } finally {
+      setLoaded(true);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/clientes/${clienteId}`);
-        if (!res.ok) throw new Error();
-        setCliente(await res.json());
-      } catch {
-        setError("Não foi possível carregar o cliente.");
-      } finally {
-        setLoaded(true);
-      }
-    })();
+    load();
   }, [clienteId]);
+
+  const salvarEdicao = async (data) => {
+    setSaving(true);
+    setErrorEdicao("");
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Não foi possível salvar as alterações.");
+      setCliente((prev) => ({ ...prev, ...json }));
+      setEditando(false);
+    } catch (e) {
+      setErrorEdicao(e.message || "Não foi possível salvar as alterações.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!loaded) {
     return <div className="max-w-3xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
@@ -53,7 +79,16 @@ export default function ClienteDetalheClient({ clienteId }) {
       </Link>
 
       <div className="bg-[rgb(var(--input-bg))] border-2 border-[rgb(var(--border-strong)/1)] p-4 mb-6">
-        <h1 className="font-black uppercase text-xl text-[rgb(var(--ink-strong)/1)] tracking-tight">{cliente.name}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="font-black uppercase text-xl text-[rgb(var(--ink-strong)/1)] tracking-tight">{cliente.name}</h1>
+          <button
+            type="button"
+            onClick={() => setEditando(true)}
+            className="flex items-center gap-1 text-[11px] font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline shrink-0"
+          >
+            <Pencil size={13} /> Editar
+          </button>
+        </div>
         <div className="flex flex-col gap-1 mt-2 text-sm text-[rgb(var(--ink))]">
           {cliente.phone && (
             <span className="flex items-center gap-1.5">
@@ -105,6 +140,24 @@ export default function ClienteDetalheClient({ clienteId }) {
           <Ticket key={os.id} os={{ ...os, cliente }} />
         ))}
       </div>
+
+      {editando && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-4">
+            {errorEdicao && (
+              <div className="mb-2 border border-[#A02018]/40 bg-[#A02018]/10 text-[#A02018] text-sm px-3 py-2">
+                {errorEdicao}
+              </div>
+            )}
+            <ClientForm
+              initial={cliente}
+              saving={saving}
+              onSave={salvarEdicao}
+              onCancel={() => setEditando(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

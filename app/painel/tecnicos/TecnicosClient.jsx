@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, UserPlus, Trash2, Search } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Pencil, Search, X } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 
 export default function TecnicosClient() {
@@ -13,6 +13,7 @@ export default function TecnicosClient() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [editando, setEditando] = useState(null);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -41,6 +42,27 @@ export default function TecnicosClient() {
       if (!res.ok) throw new Error(json.error || "Erro ao salvar técnico");
       setTecnicos((prev) => [...prev, json].sort((a, b) => a.name.localeCompare(b.name)));
       setShowForm(false);
+    } catch (e) {
+      setError(e.message || "Não foi possível salvar o técnico.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditar = async (id, data) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/tecnicos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao salvar técnico");
+      setTecnicos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...json } : t)).sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setEditando(null);
     } catch (e) {
       setError(e.message || "Não foi possível salvar o técnico.");
     } finally {
@@ -157,18 +179,37 @@ export default function TecnicosClient() {
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmId(t.id)}
-                className="shrink-0 text-[rgb(var(--stone))] hover:text-[#A02018] transition-colors p-1"
-                title="Excluir técnico"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEditando(t)}
+                  className="text-[rgb(var(--stone))] hover:text-[#1E7A52] transition-colors p-1"
+                  title="Editar técnico"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmId(t.id)}
+                  className="text-[rgb(var(--stone))] hover:text-[#A02018] transition-colors p-1"
+                  title="Excluir técnico"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             )}
           </div>
         ))}
       </div>
+
+      {editando && (
+        <EditarTecnicoModal
+          tecnico={editando}
+          saving={saving}
+          onConfirm={(data) => handleEditar(editando.id, data)}
+          onCancel={() => setEditando(null)}
+        />
+      )}
     </div>
   );
 }
@@ -235,6 +276,64 @@ function TecnicoForm({ onSave, onCancel, saving }) {
           className="flex-1 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase py-2 hover:bg-[#175F40] transition-colors disabled:opacity-50"
         >
           {saving ? "Salvando…" : "Salvar técnico"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EditarTecnicoModal({ tecnico, onConfirm, onCancel, saving }) {
+  const [name, setName] = useState(tecnico.name);
+  const [email, setEmail] = useState(tecnico.email);
+  const [username, setUsername] = useState(tecnico.username || "");
+  const [phone, setPhone] = useState(tecnico.phone || "");
+
+  const submit = () => {
+    if (!name.trim() || !email.trim()) return;
+    onConfirm({ name: name.trim(), email: email.trim(), username: username.trim(), phone: phone.trim() });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-[rgb(var(--surface))] border-2 border-[rgb(var(--border-strong)/1)] w-full max-w-md p-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="font-black uppercase text-[rgb(var(--ink-strong)/1)]">Editar técnico</p>
+          <button onClick={onCancel} type="button">
+            <X size={18} className="text-[rgb(var(--stone))]" />
+          </button>
+        </div>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nome do técnico"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+        />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="E-mail de acesso"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+        />
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Nome de usuário (opcional)"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+        />
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Telefone (opcional)"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+        />
+        <button
+          onClick={submit}
+          disabled={saving}
+          type="button"
+          className="mt-1 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase py-2.5 hover:bg-[#203D7B] transition-colors disabled:opacity-50"
+        >
+          {saving ? "Salvando…" : "Salvar alterações"}
         </button>
       </div>
     </div>

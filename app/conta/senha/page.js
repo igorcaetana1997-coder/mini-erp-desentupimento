@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import TopBar from "@/components/TopBar";
 import AlterarSenhaClient from "./AlterarSenhaClient";
+import DadosAcessoClient from "./DadosAcessoClient";
 
 export default async function AlterarSenhaPage() {
   const session = await getServerSession(authOptions);
@@ -11,6 +12,7 @@ export default async function AlterarSenhaPage() {
   return (
     <div className="min-h-screen bg-[rgb(var(--page-bg))] font-sans">
       <TopBar user={session.user} />
+      <DadosAcessoClient />
       <AlterarSenhaClient />
     </div>
   );

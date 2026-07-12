@@ -14,20 +14,20 @@ function formatCep(value) {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
-export default function ClientForm({ onSave, onCancel, saving }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [dataNascimento, setDataNascimento] = useState("");
-  const [cep, setCep] = useState("");
-  const [logradouro, setLogradouro] = useState("");
-  const [numero, setNumero] = useState("");
-  const [complemento, setComplemento] = useState("");
-  const [bairro, setBairro] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [uf, setUf] = useState("");
-  const [observacoes, setObservacoes] = useState("");
+export default function ClientForm({ initial, onSave, onCancel, saving }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [phone, setPhone] = useState(initial?.phone || "");
+  const [email, setEmail] = useState(initial?.email || "");
+  const [documento, setDocumento] = useState(initial?.documento || "");
+  const [dataNascimento, setDataNascimento] = useState(initial?.dataNascimento?.slice(0, 10) || "");
+  const [cep, setCep] = useState(initial?.cep || "");
+  const [logradouro, setLogradouro] = useState(initial?.logradouro || "");
+  const [numero, setNumero] = useState(initial?.numero || "");
+  const [complemento, setComplemento] = useState(initial?.complemento || "");
+  const [bairro, setBairro] = useState(initial?.bairro || "");
+  const [cidade, setCidade] = useState(initial?.cidade || "");
+  const [uf, setUf] = useState(initial?.uf || "");
+  const [observacoes, setObservacoes] = useState(initial?.observacoes || "");
   const [buscandoCep, setBuscandoCep] = useState(false);
 
   const buscarCep = async () => {
@@ -73,7 +73,9 @@ export default function ClientForm({ onSave, onCancel, saving }) {
   return (
     <div className="bg-[rgb(var(--input-bg))] border-2 border-[rgb(var(--border-strong)/1)] p-3 mb-3 flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm uppercase">Novo cliente</p>
+        <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm uppercase">
+          {initial ? "Editar cliente" : "Novo cliente"}
+        </p>
         <button onClick={onCancel} type="button">
           <X size={16} className="text-[rgb(var(--stone))]" />
         </button>
@@ -196,7 +198,7 @@ export default function ClientForm({ onSave, onCancel, saving }) {
         type="button"
         className="bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase py-2 hover:bg-[#175F40] transition-colors disabled:opacity-50"
       >
-        {saving ? "Salvando…" : "Salvar cliente"}
+        {saving ? "Salvando…" : initial ? "Salvar alterações" : "Salvar cliente"}
       </button>
     </div>
   );
