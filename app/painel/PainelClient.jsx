@@ -313,12 +313,12 @@ export default function PainelClient() {
                 )}
               </div>
             ))}
-            {clients.length > 3 && (
+            {clients.length > 0 && (
               <Link
                 href="/painel/clientes"
                 className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1"
               >
-                Ver mais ({clients.length - 3}) →
+                {clients.length > 3 ? `Ver mais (${clients.length - 3}) →` : "Ver lista completa →"}
               </Link>
             )}
           </div>
@@ -390,12 +390,12 @@ export default function PainelClient() {
                 )}
               </div>
             ))}
-            {tecnicos.length > 3 && (
+            {tecnicos.length > 0 && (
               <Link
                 href="/painel/tecnicos"
                 className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1"
               >
-                Ver mais ({tecnicos.length - 3}) →
+                {tecnicos.length > 3 ? `Ver mais (${tecnicos.length - 3}) →` : "Ver lista completa →"}
               </Link>
             )}
           </div>
@@ -462,12 +462,12 @@ export default function PainelClient() {
                 )}
               </div>
             ))}
-            {parceiros.length > 3 && (
+            {parceiros.length > 0 && (
               <Link
                 href="/painel/parceiros"
                 className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1"
               >
-                Ver mais ({parceiros.length - 3}) →
+                {parceiros.length > 3 ? `Ver mais (${parceiros.length - 3}) →` : "Ver lista completa →"}
               </Link>
             )}
           </div>
@@ -536,12 +536,12 @@ export default function PainelClient() {
                 }
               />
             ))}
-            {osList.length > 3 && (
+            {osList.length > 0 && (
               <Link
                 href="/painel/ordens"
                 className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1"
               >
-                Ver mais ({osList.length - 3}) →
+                {osList.length > 3 ? `Ver mais (${osList.length - 3}) →` : "Ver lista completa →"}
               </Link>
             )}
           </div>
