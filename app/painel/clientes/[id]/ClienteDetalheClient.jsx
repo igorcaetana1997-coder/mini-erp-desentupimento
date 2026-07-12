@@ -76,10 +76,15 @@ export default function ClienteDetalheClient({ clienteId }) {
             </span>
           )}
           {formatEndereco(cliente) && (
-            <span className="flex items-center gap-1.5">
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formatEndereco(cliente))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:underline hover:text-[#1E7A52] transition-colors"
+            >
               <MapPin size={13} className="text-[#1E7A52]" />
               {formatEndereco(cliente)} {cliente.cep && `— CEP ${cliente.cep}`}
-            </span>
+            </a>
           )}
         </div>
         {cliente.observacoes && (

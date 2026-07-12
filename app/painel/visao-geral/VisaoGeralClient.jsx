@@ -12,6 +12,8 @@ import {
   Settings2,
   Plus,
   Trash2,
+  AlertTriangle,
+  Cake,
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import { downloadCsv } from "@/lib/exportCsv";
@@ -25,8 +27,17 @@ function formatMoney(n) {
   return `R$ ${Number(n || 0).toFixed(2)}`;
 }
 
+const DIAS_ALERTA_STORAGE_KEY = "visaoGeral.diasAlerta";
+
+function diasAlertaInicial() {
+  if (typeof window === "undefined") return 15;
+  const salvo = Number(localStorage.getItem(DIAS_ALERTA_STORAGE_KEY));
+  return salvo > 0 ? salvo : 15;
+}
+
 export default function VisaoGeralClient() {
   const [mes, setMes] = useState(mesAtual);
+  const [diasAlerta, setDiasAlerta] = useState(diasAlertaInicial);
   const [dados, setDados] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -41,7 +52,7 @@ export default function VisaoGeralClient() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/relatorios/dashboard?month=${mes}`);
+      const res = await fetch(`/api/relatorios/dashboard?month=${mes}&diasAlerta=${diasAlerta}`);
       if (!res.ok) throw new Error();
       setDados(await res.json());
     } catch {
@@ -49,7 +60,14 @@ export default function VisaoGeralClient() {
     } finally {
       setLoading(false);
     }
-  }, [mes]);
+  }, [mes, diasAlerta]);
+
+  const alterarDiasAlerta = (valor) => {
+    const n = Number(valor);
+    if (!Number.isFinite(n) || n <= 0) return;
+    setDiasAlerta(n);
+    localStorage.setItem(DIAS_ALERTA_STORAGE_KEY, String(n));
+  };
 
   const loadFaixas = useCallback(async () => {
     try {
@@ -129,12 +147,28 @@ export default function VisaoGeralClient() {
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 className="font-black uppercase tracking-tight text-[rgb(var(--ink-strong)/1)] text-xl">Visão Geral</h1>
-        <input
-          type="month"
-          value={mes}
-          onChange={(e) => setMes(e.target.value)}
-          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] bg-[rgb(var(--input-bg))]"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-[rgb(var(--ink))]">
+            Alertar pagamento pendente após
+            <select
+              value={diasAlerta}
+              onChange={(e) => alterarDiasAlerta(e.target.value)}
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] bg-[rgb(var(--input-bg))]"
+            >
+              {[7, 15, 30, 60].map((d) => (
+                <option key={d} value={d}>
+                  {d} dias
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
+            type="month"
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+            className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] bg-[rgb(var(--input-bg))]"
+          />
+        </div>
       </div>
 
       {error && (
@@ -191,6 +225,58 @@ export default function VisaoGeralClient() {
                 <TicketIcon size={12} /> Ticket médio
               </span>
               <span className="font-mono font-black text-lg">{formatMoney(dados.periodo.ticketMedio)}</span>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3 mb-6">
+            <div>
+              <h2 className="flex items-center gap-1.5 font-black uppercase text-sm text-[rgb(var(--ink-strong)/1)] mb-2">
+                <AlertTriangle size={14} /> Pagamentos pendentes antigos
+              </h2>
+              {dados.alertaPagamentos.itens.length === 0 ? (
+                <EmptyState text={`Nenhum pagamento pendente há mais de ${dados.alertaPagamentos.diasAlerta} dias.`} />
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {dados.alertaPagamentos.itens.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-[#E8A33D]/10 border border-[#E8A33D]/40 px-3 py-2 flex items-center justify-between gap-2 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-[rgb(var(--ink-strong)/1)] truncate">{item.cliente}</p>
+                        <p className="text-[11px] text-[rgb(var(--stone))] truncate">{item.serviceType}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-mono font-bold text-[#A02018]">{formatMoney(item.faltante)}</p>
+                        <p className="text-[11px] text-[rgb(var(--stone))]">há {item.diasAtraso} dias</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h2 className="flex items-center gap-1.5 font-black uppercase text-sm text-[rgb(var(--ink-strong)/1)] mb-2">
+                <Cake size={14} /> Próximos aniversários
+              </h2>
+              {dados.proximosAniversarios.length === 0 ? (
+                <EmptyState text="Nenhum aniversário nos próximos 30 dias." />
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {dados.proximosAniversarios.map((c) => (
+                    <div
+                      key={c.id}
+                      className="bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 text-sm"
+                    >
+                      <p className="font-bold text-[rgb(var(--ink-strong)/1)] truncate">{c.nome}</p>
+                      <p className="text-[11px] text-[rgb(var(--stone))] shrink-0">
+                        {c.data} · {c.diasAte === 0 ? "hoje" : `em ${c.diasAte}d`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

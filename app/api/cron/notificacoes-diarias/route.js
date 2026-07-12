@@ -35,6 +35,7 @@ export async function GET(req) {
       status: "concluida",
       concluidaEm: { gte: alvoInicio, lt: alvoFim },
       followUpEnviadoEm: null,
+      deletedAt: null,
     },
     include: { cliente: true },
   });
@@ -60,7 +61,7 @@ export async function GET(req) {
   const diaHoje = hoje.getUTCDate();
 
   const clientesComAniversario = await prisma.cliente.findMany({
-    where: { dataNascimento: { not: null } },
+    where: { dataNascimento: { not: null }, deletedAt: null },
   });
 
   const aniversariantes = clientesComAniversario.filter((c) => {

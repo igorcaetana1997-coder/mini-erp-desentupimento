@@ -433,7 +433,7 @@ export default function TicketActions({
             </button>
           ) : (
             <div className="flex items-center justify-between gap-2 bg-[#A02018]/10 border border-[#A02018]/30 px-2 py-1.5">
-              <span className="text-[11px] text-[#A02018]">Excluir esta OS definitivamente?</span>
+              <span className="text-[11px] text-[#A02018]">Mover esta OS para a lixeira?</span>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"

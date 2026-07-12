@@ -10,6 +10,7 @@ export async function GET() {
   }
 
   const clientes = await prisma.cliente.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json(clientes);

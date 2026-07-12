@@ -18,9 +18,9 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  let where = { technicianId: session.user.id };
-  if (session.user.role === "admin") where = {};
-  else if (session.user.role === "parceiro") where = { parceiroId: session.user.parceiroId };
+  let where = { deletedAt: null, technicianId: session.user.id };
+  if (session.user.role === "admin") where = { deletedAt: null };
+  else if (session.user.role === "parceiro") where = { deletedAt: null, parceiroId: session.user.parceiroId };
 
   const ordens = await prisma.ordemServico.findMany({
     where,

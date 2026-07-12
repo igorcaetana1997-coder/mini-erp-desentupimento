@@ -26,18 +26,24 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const mes = searchParams.get("month") || mesAtual();
   const { from, to } = limitesDoMes(mes);
+  const diasAlerta = Number(searchParams.get("diasAlerta")) || 15;
 
-  const [abertas, andamento, ordensDoMes, faixas] = await Promise.all([
-    prisma.ordemServico.count({ where: { status: "aberta" } }),
-    prisma.ordemServico.count({ where: { status: "andamento" } }),
+  const [abertas, andamento, ordensDoMes, faixas, osConcluidasComValor, clientesComNascimento] = await Promise.all([
+    prisma.ordemServico.count({ where: { status: "aberta", deletedAt: null } }),
+    prisma.ordemServico.count({ where: { status: "andamento", deletedAt: null } }),
     prisma.ordemServico.findMany({
-      where: { scheduledAt: { gte: from, lte: to }, status: { in: ["concluida", "recusada"] } },
+      where: { scheduledAt: { gte: from, lte: to }, status: { in: ["concluida", "recusada"] }, deletedAt: null },
       include: {
         technician: { select: { id: true, name: true } },
         parceiro: { select: { id: true, name: true } },
       },
     }),
     prisma.faixaComissao.findMany({ orderBy: { minValor: "asc" } }),
+    prisma.ordemServico.findMany({
+      where: { status: "concluida", deletedAt: null, value: { not: null } },
+      include: { cliente: { select: { id: true, name: true } } },
+    }),
+    prisma.cliente.findMany({ where: { dataNascimento: { not: null }, deletedAt: null } }),
   ]);
 
   const concluidasArr = ordensDoMes.filter((os) => os.status === "concluida");
@@ -82,6 +88,55 @@ export async function GET(req) {
   }
   const rankingParceiros = Object.values(producaoPorParceiro).sort((a, b) => b.total - a.total);
 
+  // Alerta de pagamento pendente antigo: OS concluída há mais de `diasAlerta` dias
+  // que ainda não foi totalmente paga. Não é filtrado pelo mês selecionado — reflete
+  // o estado atual, igual ao pipeline.
+  const agora = Date.now();
+  const alertaPagamentosCompleto = osConcluidasComValor
+    .map((os) => {
+      const { status, faltante } = getStatusPagamento(os);
+      if (status !== "pendente" && status !== "parcial") return null;
+      const referencia = os.concluidaEm || os.updatedAt;
+      const diasAtraso = Math.floor((agora - new Date(referencia).getTime()) / (1000 * 60 * 60 * 24));
+      if (diasAtraso < diasAlerta) return null;
+      return {
+        id: os.id,
+        cliente: os.cliente?.name || "—",
+        serviceType: os.serviceType,
+        faltante,
+        diasAtraso,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.diasAtraso - a.diasAtraso);
+
+  const alertaPagamentos = {
+    diasAlerta,
+    total: alertaPagamentosCompleto.length,
+    itens: alertaPagamentosCompleto.slice(0, 10),
+  };
+
+  // Próximos aniversários (30 dias), também sem filtro de mês.
+  const hoje = new Date();
+  const hojeUTC = Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
+  const proximosAniversarios = clientesComNascimento
+    .map((c) => {
+      const nasc = new Date(c.dataNascimento);
+      const mesNasc = nasc.getUTCMonth();
+      const diaNasc = nasc.getUTCDate();
+      let proximoTs = Date.UTC(hoje.getUTCFullYear(), mesNasc, diaNasc);
+      if (proximoTs < hojeUTC) proximoTs = Date.UTC(hoje.getUTCFullYear() + 1, mesNasc, diaNasc);
+      const diasAte = Math.round((proximoTs - hojeUTC) / (1000 * 60 * 60 * 24));
+      return {
+        id: c.id,
+        nome: c.name,
+        data: `${String(diaNasc).padStart(2, "0")}/${String(mesNasc + 1).padStart(2, "0")}`,
+        diasAte,
+      };
+    })
+    .filter((c) => c.diasAte <= 30)
+    .sort((a, b) => a.diasAte - b.diasAte);
+
   return NextResponse.json({
     mes,
     pipeline: { abertas, andamento },
@@ -95,5 +150,7 @@ export async function GET(req) {
     },
     rankingTecnicos,
     rankingParceiros,
+    alertaPagamentos,
+    proximosAniversarios,
   });
 }

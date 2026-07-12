@@ -12,6 +12,18 @@ const poppins = Poppins({
 export const metadata = {
   title: "Real Leader Desentupidora — Painel",
   description: "Gestão de clientes e ordens de serviço da Real Leader Desentupidora",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Real Leader",
+  },
+  icons: {
+    apple: "/icon.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#142D65",
 };
 
 const NO_FLASH_THEME_SCRIPT = `

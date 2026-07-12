@@ -63,10 +63,16 @@ export default function Ticket({ os, compact, actions }) {
           {cliente?.name || "Cliente removido"}
         </div>
         {endereco && (
-          <div className="flex items-center gap-1.5 text-xs text-[rgb(var(--ink))]">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1.5 text-xs text-[rgb(var(--ink))] hover:underline hover:text-[#1E7A52] transition-colors"
+          >
             <MapPin size={12} className="text-[#1E7A52] shrink-0" />
             {endereco}
-          </div>
+          </a>
         )}
         {cliente?.phone && !compact && (
           <div className="flex items-center gap-1.5 text-xs text-[rgb(var(--ink))]">

@@ -50,6 +50,7 @@ model Cliente {
   observacoes    String?
   createdAt      DateTime  @default(now())
   ultimoParabensAno Int? // ano em que a mensagem de aniversário automática já foi enviada
+  deletedAt      DateTime? // preenchido = está na lixeira; null = ativo
 
   ordens OrdemServico[]
 }
@@ -90,6 +91,8 @@ model OrdemServico {
   // Automação de WhatsApp (acompanhamento pós-serviço)
   concluidaEm       DateTime? // quando o status virou "concluida" (separado de updatedAt, que muda com qualquer edição)
   followUpEnviadoEm DateTime? // quando a mensagem de acompanhamento (15 dias) foi enviada
+
+  deletedAt DateTime? // preenchido = está na lixeira; null = ativa
 
   fotos     FotoServico[]
   createdAt DateTime      @default(now())

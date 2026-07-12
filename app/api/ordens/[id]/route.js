@@ -80,6 +80,9 @@ export async function PATCH(req, { params }) {
   }
 
   // Campos exclusivos do admin
+  if (body.restaurar === true) {
+    data.deletedAt = null;
+  }
   if (typeof body.serviceType === "string" && body.serviceType.trim()) {
     data.serviceType = body.serviceType.trim();
   }
@@ -158,8 +161,9 @@ export async function PATCH(req, { params }) {
   return NextResponse.json(updated);
 }
 
-// Exclusão definitiva da OS — só admin. Remove as fotos anexadas antes,
-// já que o registro é apagado de vez (não é um "cancelar"/"recusar").
+// Exclusão da OS — só admin. Primeira chamada move pra lixeira (soft delete);
+// segunda chamada (a partir da tela de Lixeira, com deletedAt já preenchido)
+// apaga de vez, removendo as fotos anexadas antes.
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
@@ -169,6 +173,11 @@ export async function DELETE(req, { params }) {
   const os = await prisma.ordemServico.findUnique({ where: { id: params.id } });
   if (!os) {
     return NextResponse.json({ error: "Ordem de serviço não encontrada" }, { status: 404 });
+  }
+
+  if (!os.deletedAt) {
+    await prisma.ordemServico.update({ where: { id: params.id }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ ok: true, lixeira: true });
   }
 
   await prisma.fotoServico.deleteMany({ where: { ordemServicoId: params.id } });

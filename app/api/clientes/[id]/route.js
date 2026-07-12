@@ -34,6 +34,9 @@ export async function PATCH(req, { params }) {
 
   const body = await req.json();
   const data = {};
+  if (body.restaurar === true) {
+    data.deletedAt = null;
+  }
   if (typeof body.name === "string") data.name = body.name.trim();
   if (typeof body.phone === "string") data.phone = body.phone.trim();
   if (typeof body.email === "string") data.email = body.email.trim() || null;
@@ -62,8 +65,10 @@ export async function PATCH(req, { params }) {
   return NextResponse.json(cliente);
 }
 
-// Exclusão do cliente — só admin. Bloqueada pela FK (ON DELETE RESTRICT) se
-// existirem OS vinculadas, para não apagar histórico de serviço sem querer.
+// Exclusão do cliente — só admin. Primeira chamada move pra lixeira (soft
+// delete); segunda chamada (a partir da tela de Lixeira, com o registro já
+// deletedAt preenchido) apaga de vez. Bloqueada se existirem OS ativas
+// (não deletadas) vinculadas, para não perder histórico de serviço sem querer.
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
@@ -72,7 +77,7 @@ export async function DELETE(req, { params }) {
 
   const cliente = await prisma.cliente.findUnique({
     where: { id: params.id },
-    include: { _count: { select: { ordens: true } } },
+    include: { _count: { select: { ordens: { where: { deletedAt: null } } } } },
   });
   if (!cliente) {
     return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
@@ -84,6 +89,11 @@ export async function DELETE(req, { params }) {
       },
       { status: 409 }
     );
+  }
+
+  if (!cliente.deletedAt) {
+    await prisma.cliente.update({ where: { id: params.id }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ ok: true, lixeira: true });
   }
 
   await prisma.cliente.delete({ where: { id: params.id } });

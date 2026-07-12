@@ -16,7 +16,7 @@ export async function GET(req) {
   const to = searchParams.get("to");
   const technicianId = searchParams.get("technicianId");
 
-  const whereOrdens = { status: "concluida" };
+  const whereOrdens = { status: "concluida", deletedAt: null };
   if (from || to) {
     whereOrdens.scheduledAt = {};
     if (from) whereOrdens.scheduledAt.gte = new Date(`${from}T00:00:00`);

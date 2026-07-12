@@ -15,6 +15,7 @@ import {
   KeyRound,
   Menu,
   X,
+  Trash2,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
@@ -23,6 +24,7 @@ const ADMIN_LINKS = [
   { href: "/painel", label: "Painel", icon: LayoutDashboard },
   { href: "/painel/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/painel/financeiro", label: "Financeiro", icon: Wallet },
+  { href: "/painel/lixeira", label: "Lixeira", icon: Trash2 },
   { href: "/tecnico", label: "Técnico", icon: Smartphone },
 ];
 
