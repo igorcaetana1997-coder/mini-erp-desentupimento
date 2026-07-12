@@ -252,7 +252,7 @@ export default function PainelClient() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Clientes */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -478,29 +478,31 @@ export default function PainelClient() {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Ordens de serviço */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-black uppercase tracking-tight text-[rgb(var(--ink-strong)/1)]">
-              Ordens de serviço{" "}
-              <span className="text-[rgb(var(--stone))] font-normal">({osList.length})</span>
-            </h2>
-            <button
-              onClick={() => setShowOsForm(true)}
-              disabled={clients.length === 0}
-              className="flex items-center gap-1 bg-[#E8A33D] text-[#1a1208] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#d99527] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Plus size={14} /> Nova OS
-            </button>
-          </div>
+      {/* Ordens de serviço */}
+      <div className="mt-6 md:mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-black uppercase tracking-tight text-[rgb(var(--ink-strong)/1)]">
+            Ordens de serviço{" "}
+            <span className="text-[rgb(var(--stone))] font-normal">({osList.length})</span>
+          </h2>
+          <button
+            onClick={() => setShowOsForm(true)}
+            disabled={clients.length === 0}
+            className="flex items-center gap-1 bg-[#E8A33D] text-[#1a1208] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#d99527] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Plus size={14} /> Nova OS
+          </button>
+        </div>
 
-          {clients.length === 0 && (
-            <p className="text-xs text-[rgb(var(--stone))] mb-2">
-              Cadastre um cliente antes de abrir uma OS.
-            </p>
-          )}
+        {clients.length === 0 && (
+          <p className="text-xs text-[rgb(var(--stone))] mb-2">
+            Cadastre um cliente antes de abrir uma OS.
+          </p>
+        )}
 
+        <div className="max-w-2xl">
           {showOsForm && (
             <OsForm
               clients={clients}
