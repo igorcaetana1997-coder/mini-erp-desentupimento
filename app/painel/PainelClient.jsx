@@ -268,11 +268,15 @@ export default function PainelClient() {
           </div>
 
           {showClientForm && (
-            <ClientForm
-              saving={savingClient}
-              onSave={addClient}
-              onCancel={() => setShowClientForm(false)}
-            />
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="w-full max-w-md my-4">
+                <ClientForm
+                  saving={savingClient}
+                  onSave={addClient}
+                  onCancel={() => setShowClientForm(false)}
+                />
+              </div>
+            </div>
           )}
 
           <div className="flex flex-col gap-2">
@@ -345,11 +349,15 @@ export default function PainelClient() {
           </div>
 
           {showTecnicoForm && (
-            <TecnicoForm
-              saving={savingTecnico}
-              onSave={addTecnico}
-              onCancel={() => setShowTecnicoForm(false)}
-            />
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="w-full max-w-md my-4">
+                <TecnicoForm
+                  saving={savingTecnico}
+                  onSave={addTecnico}
+                  onCancel={() => setShowTecnicoForm(false)}
+                />
+              </div>
+            </div>
           )}
 
           <div className="flex flex-col gap-2">
@@ -422,7 +430,11 @@ export default function PainelClient() {
           </div>
 
           {showParceiroForm && (
-            <ParceiroForm saving={savingParceiro} onSave={addParceiro} onCancel={() => setShowParceiroForm(false)} />
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="w-full max-w-md my-4">
+                <ParceiroForm saving={savingParceiro} onSave={addParceiro} onCancel={() => setShowParceiroForm(false)} />
+              </div>
+            </div>
           )}
 
           <div className="flex flex-col gap-2">
@@ -502,22 +514,26 @@ export default function PainelClient() {
           </p>
         )}
 
-        <div className="max-w-2xl">
-          {showOsForm && (
-            <OsForm
-              clients={clients}
-              tecnicos={tecnicos}
-              parceiros={parceiros}
-              saving={savingOs}
-              onSave={addOs}
-              onCancel={() => setShowOsForm(false)}
-            />
-          )}
+        {showOsForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="w-full max-w-lg my-4">
+              <OsForm
+                clients={clients}
+                tecnicos={tecnicos}
+                parceiros={parceiros}
+                saving={savingOs}
+                onSave={addOs}
+                onCancel={() => setShowOsForm(false)}
+              />
+            </div>
+          </div>
+        )}
 
-          <div className="flex flex-col gap-3">
-            {osList.length === 0 && !showOsForm && (
-              <EmptyState text="Nenhuma ordem de serviço aberta. Crie a primeira." />
-            )}
+        <div>
+          {osList.length === 0 && (
+            <EmptyState text="Nenhuma ordem de serviço aberta. Crie a primeira." />
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {osList.slice(0, 3).map((os) => (
               <Ticket
                 key={os.id}
@@ -545,15 +561,17 @@ export default function PainelClient() {
                 }
               />
             ))}
-            {osList.length > 0 && (
+          </div>
+          {osList.length > 0 && (
+            <div className="mt-3">
               <Link
                 href="/painel/ordens"
-                className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1"
+                className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1 block"
               >
                 {osList.length > 3 ? `Ver mais (${osList.length - 3}) →` : "Ver lista completa →"}
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
