@@ -12,6 +12,9 @@ const SERVICE_TYPES = [
   "Outro serviço",
 ];
 
+const OUTRO_SERVICO = "Outro serviço";
+const OUTRO_PREFIXO = "Outro serviço: ";
+
 const PAYMENT_METHODS = [
   { value: "", label: "Forma de pagamento (opcional)" },
   { value: "dinheiro", label: "Dinheiro" },
@@ -32,7 +35,9 @@ function toLocalInputValue(value) {
 }
 
 export default function EditarOsModal({ os, tecnicos, parceiros = [], onConfirm, onCancel, saving }) {
-  const [serviceType, setServiceType] = useState(os.serviceType);
+  const ehOutro = os.serviceType?.startsWith(OUTRO_PREFIXO);
+  const [serviceType, setServiceType] = useState(ehOutro ? OUTRO_SERVICO : os.serviceType);
+  const [outroTexto, setOutroTexto] = useState(ehOutro ? os.serviceType.slice(OUTRO_PREFIXO.length) : "");
   const [technicianId, setTechnicianId] = useState(os.technicianId || "");
   const [value, setValue] = useState(os.value != null ? String(os.value) : "");
   const [scheduledAt, setScheduledAt] = useState(toLocalInputValue(os.scheduledAt));
@@ -46,8 +51,12 @@ export default function EditarOsModal({ os, tecnicos, parceiros = [], onConfirm,
   );
 
   const submit = () => {
+    const finalServiceType =
+      serviceType === OUTRO_SERVICO && outroTexto.trim()
+        ? `${OUTRO_PREFIXO}${outroTexto.trim()}`
+        : serviceType;
     onConfirm({
-      serviceType,
+      serviceType: finalServiceType,
       technicianId: technicianId || null,
       value,
       scheduledAt,
@@ -81,6 +90,15 @@ export default function EditarOsModal({ os, tecnicos, parceiros = [], onConfirm,
             </option>
           ))}
         </select>
+
+        {serviceType === OUTRO_SERVICO && (
+          <input
+            value={outroTexto}
+            onChange={(e) => setOutroTexto(e.target.value)}
+            placeholder="Especifique o serviço (ex: limpeza de coluna)"
+            className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+          />
+        )}
 
         <select
           value={technicianId}

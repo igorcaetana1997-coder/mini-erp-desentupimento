@@ -12,6 +12,9 @@ const SERVICE_TYPES = [
   "Outro serviço",
 ];
 
+const OUTRO_SERVICO = "Outro serviço";
+const OUTRO_PREFIXO = "Outro serviço: ";
+
 const PAYMENT_METHODS = [
   { value: "", label: "Forma de pagamento (opcional)" },
   { value: "dinheiro", label: "Dinheiro" },
@@ -34,6 +37,7 @@ const PARCERIA_TIPOS = [
 export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCancel, saving }) {
   const [clientId, setClientId] = useState(clients[0]?.id || "");
   const [serviceType, setServiceType] = useState(SERVICE_TYPES[0]);
+  const [outroTexto, setOutroTexto] = useState("");
   const [technicianId, setTechnicianId] = useState("");
   const [value, setValue] = useState("");
   const [scheduledAt, setScheduledAt] = useState(nowLocalInputValue);
@@ -46,9 +50,13 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
 
   const submit = () => {
     if (!clientId || !scheduledAt) return;
+    const finalServiceType =
+      serviceType === OUTRO_SERVICO && outroTexto.trim()
+        ? `${OUTRO_PREFIXO}${outroTexto.trim()}`
+        : serviceType;
     onSave({
       clienteId: clientId,
-      serviceType,
+      serviceType: finalServiceType,
       technicianId: technicianId || null,
       value,
       scheduledAt,
@@ -93,6 +101,15 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
           </option>
         ))}
       </select>
+
+      {serviceType === OUTRO_SERVICO && (
+        <input
+          value={outroTexto}
+          onChange={(e) => setOutroTexto(e.target.value)}
+          placeholder="Especifique o serviço (ex: limpeza de coluna)"
+          className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+        />
+      )}
 
       <select
         value={technicianId}

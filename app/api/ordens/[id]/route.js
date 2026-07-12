@@ -80,6 +80,9 @@ export async function PATCH(req, { params }) {
   }
 
   // Campos exclusivos do admin
+  if (typeof body.serviceType === "string" && body.serviceType.trim()) {
+    data.serviceType = body.serviceType.trim();
+  }
   if (body.technicianId !== undefined) {
     if (body.technicianId) {
       const tecnico = await prisma.user.findUnique({ where: { id: body.technicianId } });

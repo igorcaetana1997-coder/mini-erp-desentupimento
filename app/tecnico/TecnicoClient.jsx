@@ -59,6 +59,12 @@ export default function TecnicoClient() {
     patchOs(id, `/api/ordens/${id}`, { avaliacaoNota }, "Não foi possível salvar a avaliação.");
   const handleFotoAdicionada = (id, foto) =>
     setOsList((prev) => prev.map((os) => (os.id === id ? { ...os, fotos: [...(os.fotos || []), foto] } : os)));
+  const handleFotoRemovida = async (id, fotoId) => {
+    await fetch(`/api/ordens/${id}/fotos/${fotoId}`, { method: "DELETE" });
+    setOsList((prev) =>
+      prev.map((os) => (os.id === id ? { ...os, fotos: os.fotos.filter((f) => f.id !== fotoId) } : os))
+    );
+  };
   const handleSalvarValor = (id, value) =>
     patchOs(id, `/api/ordens/${id}`, { value }, "Não foi possível salvar o valor.");
 
@@ -139,6 +145,7 @@ export default function TecnicoClient() {
                 onSalvarMateriais={handleSalvarMateriais}
                 onSalvarAvaliacao={handleSalvarAvaliacao}
                 onFotoAdicionada={handleFotoAdicionada}
+                onFotoRemovida={handleFotoRemovida}
                 onSalvarValor={handleSalvarValor}
               />
             }

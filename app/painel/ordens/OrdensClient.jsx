@@ -75,6 +75,12 @@ export default function OrdensClient() {
     patchOs(id, `/api/ordens/${id}`, { avaliacaoNota }, "Não foi possível salvar a avaliação.");
   const handleFotoAdicionada = (id, foto) =>
     setOsList((prev) => prev.map((os) => (os.id === id ? { ...os, fotos: [...(os.fotos || []), foto] } : os)));
+  const handleFotoRemovida = async (id, fotoId) => {
+    await fetch(`/api/ordens/${id}/fotos/${fotoId}`, { method: "DELETE" });
+    setOsList((prev) =>
+      prev.map((os) => (os.id === id ? { ...os, fotos: os.fotos.filter((f) => f.id !== fotoId) } : os))
+    );
+  };
   const handleRegistrarPagamento = (id, valorPago) =>
     patchOs(id, `/api/ordens/${id}`, { valorPago }, "Não foi possível registrar o pagamento.");
   const handleEditarOs = (id, payload) =>
@@ -179,6 +185,7 @@ export default function OrdensClient() {
                 onSalvarMateriais={handleSalvarMateriais}
                 onSalvarAvaliacao={handleSalvarAvaliacao}
                 onFotoAdicionada={handleFotoAdicionada}
+                onFotoRemovida={handleFotoRemovida}
                 onRegistrarPagamento={handleRegistrarPagamento}
                 onEditarOs={handleEditarOs}
                 onExcluir={handleExcluir}

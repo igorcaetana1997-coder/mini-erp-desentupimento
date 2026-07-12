@@ -14,6 +14,7 @@ import {
   Undo2,
   Trash2,
   Pencil,
+  X,
 } from "lucide-react";
 import ConcluirOsModal from "./ConcluirOsModal";
 import RecusarOsModal from "./RecusarOsModal";
@@ -35,6 +36,7 @@ export default function TicketActions({
   onSalvarMateriais,
   onSalvarAvaliacao,
   onFotoAdicionada,
+  onFotoRemovida,
   onSalvarValor,
   onRegistrarPagamento,
   onEditarOs,
@@ -54,6 +56,7 @@ export default function TicketActions({
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [fotoError, setFotoError] = useState("");
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [fotoAmpliada, setFotoAmpliada] = useState(null);
   const fileInputRef = useRef(null);
 
   const isAdmin = role === "admin";
@@ -327,13 +330,33 @@ export default function TicketActions({
           {Array.isArray(os.fotos) && os.fotos.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {os.fotos.map((foto) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={foto.id}
-                  src={foto.data}
-                  alt="Foto do serviço"
-                  className="w-14 h-14 object-cover border border-[rgb(var(--border-strong)/0.3)]"
-                />
+                <div key={foto.id} className="relative w-14 h-14">
+                  <button
+                    type="button"
+                    onClick={() => setFotoAmpliada(foto)}
+                    className="block w-full h-full"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={foto.data}
+                      alt="Foto do serviço"
+                      className="w-14 h-14 object-cover border border-[rgb(var(--border-strong)/0.3)]"
+                    />
+                  </button>
+                  {onFotoRemovida && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFotoRemovida(os.id, foto.id);
+                      }}
+                      title="Excluir foto"
+                      className="absolute -top-1.5 -right-1.5 bg-[#A02018] text-[#F2EFE9] rounded-full p-0.5 shadow"
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -349,7 +372,6 @@ export default function TicketActions({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleFotoSelecionada}
             className="hidden"
           />
@@ -470,6 +492,28 @@ export default function TicketActions({
             setShowEditar(false);
           }}
         />
+      )}
+
+      {fotoAmpliada && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setFotoAmpliada(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setFotoAmpliada(null)}
+            className="absolute top-4 right-4 text-white"
+          >
+            <X size={28} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fotoAmpliada.data}
+            alt="Foto do serviço ampliada"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );
