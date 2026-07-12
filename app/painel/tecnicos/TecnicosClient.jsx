@@ -70,6 +70,7 @@ export default function TecnicosClient() {
       return (
         t.name?.toLowerCase().includes(q) ||
         t.email?.toLowerCase().includes(q) ||
+        t.username?.toLowerCase().includes(q) ||
         t.phone?.toLowerCase().includes(q)
       );
     });
@@ -134,6 +135,7 @@ export default function TecnicosClient() {
             <div className="min-w-0 flex-1">
               <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{t.name}</p>
               <p className="text-xs text-[rgb(var(--ink))]">{t.email}</p>
+              {t.username && <p className="text-xs text-[rgb(var(--ink))]">Usuário: {t.username}</p>}
               {t.phone && <p className="text-xs text-[rgb(var(--stone))]">{t.phone}</p>}
             </div>
             {confirmId === t.id ? (
@@ -174,12 +176,13 @@ export default function TecnicosClient() {
 function TecnicoForm({ onSave, onCancel, saving }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
   const submit = () => {
     if (!name.trim() || !email.trim() || password.length < 6) return;
-    onSave({ name: name.trim(), email: email.trim(), phone: phone.trim(), password });
+    onSave({ name: name.trim(), email: email.trim(), username: username.trim(), phone: phone.trim(), password });
   };
 
   return (
@@ -196,6 +199,12 @@ function TecnicoForm({ onSave, onCancel, saving }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="E-mail de acesso"
+        className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+      />
+      <input
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Nome de usuário (opcional, alternativa ao e-mail)"
         className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
       />
       <input

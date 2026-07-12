@@ -12,7 +12,7 @@ export async function GET() {
 
   const tecnicos = await prisma.user.findMany({
     where: { role: "tecnico" },
-    select: { id: true, name: true, email: true, phone: true },
+    select: { id: true, name: true, email: true, username: true, phone: true },
     orderBy: { name: "asc" },
   });
   return NextResponse.json(tecnicos);
@@ -27,6 +27,7 @@ export async function POST(req) {
   const body = await req.json();
   const name = (body.name || "").trim();
   const email = (body.email || "").trim().toLowerCase();
+  const username = (body.username || "").trim().toLowerCase();
   const password = body.password || "";
   const phone = (body.phone || "").trim();
 
@@ -36,16 +37,28 @@ export async function POST(req) {
       { status: 400 }
     );
   }
+  if (username && !/^[a-z0-9._-]+$/.test(username)) {
+    return NextResponse.json(
+      { error: "Usuário deve conter apenas letras, números, ponto, hífen ou underline" },
+      { status: 400 }
+    );
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return NextResponse.json({ error: "Já existe um usuário com esse e-mail" }, { status: 409 });
   }
+  if (username) {
+    const usernameEmUso = await prisma.user.findUnique({ where: { username } });
+    if (usernameEmUso) {
+      return NextResponse.json({ error: "Já existe um usuário com esse nome de usuário" }, { status: 409 });
+    }
+  }
 
   const hashed = await bcrypt.hash(password, 10);
   const tecnico = await prisma.user.create({
-    data: { name, email, password: hashed, phone: phone || null, role: "tecnico" },
-    select: { id: true, name: true, email: true, phone: true },
+    data: { name, email, username: username || null, password: hashed, phone: phone || null, role: "tecnico" },
+    select: { id: true, name: true, email: true, username: true, phone: true },
   });
 
   return NextResponse.json(tecnico, { status: 201 });

@@ -24,6 +24,10 @@ export const metadata = {
 
 export const viewport = {
   themeColor: "#142D65",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 const NO_FLASH_THEME_SCRIPT = `

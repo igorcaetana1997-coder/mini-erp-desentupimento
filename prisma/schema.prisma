@@ -12,6 +12,7 @@ model User {
   id         String    @id @default(cuid())
   name       String
   email      String    @unique
+  username   String?   @unique // opcional: login alternativo ao e-mail, definido na criação do usuário
   password   String
   role       String // "admin" | "tecnico" | "parceiro"
   phone      String?

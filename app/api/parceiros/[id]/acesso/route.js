@@ -23,15 +23,28 @@ export async function POST(req, { params }) {
 
   const body = await req.json();
   const email = (body.email || "").trim().toLowerCase();
+  const username = (body.username || "").trim().toLowerCase();
   const password = body.password || "";
 
   if (!email || password.length < 6) {
     return NextResponse.json({ error: "E-mail e senha (mín. 6 caracteres) são obrigatórios" }, { status: 400 });
   }
+  if (username && !/^[a-z0-9._-]+$/.test(username)) {
+    return NextResponse.json(
+      { error: "Usuário deve conter apenas letras, números, ponto, hífen ou underline" },
+      { status: 400 }
+    );
+  }
 
   const emailEmUso = await prisma.user.findUnique({ where: { email } });
   if (emailEmUso) {
     return NextResponse.json({ error: "Já existe um usuário com esse e-mail" }, { status: 409 });
+  }
+  if (username) {
+    const usernameEmUso = await prisma.user.findUnique({ where: { username } });
+    if (usernameEmUso) {
+      return NextResponse.json({ error: "Já existe um usuário com esse nome de usuário" }, { status: 409 });
+    }
   }
 
   const hashed = await bcrypt.hash(password, 10);
@@ -39,11 +52,12 @@ export async function POST(req, { params }) {
     data: {
       name: parceiro.name,
       email,
+      username: username || null,
       password: hashed,
       role: "parceiro",
       parceiroId: parceiro.id,
     },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, username: true },
   });
 
   return NextResponse.json(login, { status: 201 });

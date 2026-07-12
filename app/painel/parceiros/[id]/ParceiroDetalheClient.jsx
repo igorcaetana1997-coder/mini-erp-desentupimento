@@ -12,6 +12,7 @@ export default function ParceiroDetalheClient({ parceiroId }) {
   const [error, setError] = useState("");
   const [showAcessoForm, setShowAcessoForm] = useState(false);
   const [emailAcesso, setEmailAcesso] = useState("");
+  const [usernameAcesso, setUsernameAcesso] = useState("");
   const [senhaAcesso, setSenhaAcesso] = useState("");
   const [savingAcesso, setSavingAcesso] = useState(false);
 
@@ -38,12 +39,13 @@ export default function ParceiroDetalheClient({ parceiroId }) {
       const res = await fetch(`/api/parceiros/${parceiroId}/acesso`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailAcesso.trim(), password: senhaAcesso }),
+        body: JSON.stringify({ email: emailAcesso.trim(), username: usernameAcesso.trim(), password: senhaAcesso }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Não foi possível criar o acesso.");
       setShowAcessoForm(false);
       setEmailAcesso("");
+      setUsernameAcesso("");
       setSenhaAcesso("");
       await load();
     } catch (e) {
@@ -115,9 +117,16 @@ export default function ParceiroDetalheClient({ parceiroId }) {
           <KeyRound size={14} /> Acesso ao sistema
         </h2>
         {parceiro.logins?.length > 0 ? (
-          <p className="text-sm text-[rgb(var(--ink))]">
-            Login ativo: <span className="font-semibold text-[rgb(var(--ink-strong)/1)]">{parceiro.logins[0].email}</span>
-          </p>
+          <div className="text-sm text-[rgb(var(--ink))] flex flex-col gap-0.5">
+            <p>
+              E-mail: <span className="font-semibold text-[rgb(var(--ink-strong)/1)]">{parceiro.logins[0].email}</span>
+            </p>
+            {parceiro.logins[0].username && (
+              <p>
+                Usuário: <span className="font-semibold text-[rgb(var(--ink-strong)/1)]">{parceiro.logins[0].username}</span>
+              </p>
+            )}
+          </div>
         ) : !showAcessoForm ? (
           <button
             type="button"
@@ -133,6 +142,12 @@ export default function ParceiroDetalheClient({ parceiroId }) {
               value={emailAcesso}
               onChange={(e) => setEmailAcesso(e.target.value)}
               placeholder="E-mail de acesso"
+              className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            />
+            <input
+              value={usernameAcesso}
+              onChange={(e) => setUsernameAcesso(e.target.value)}
+              placeholder="Nome de usuário (opcional, alternativa ao e-mail)"
               className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
             />
             <input

@@ -138,6 +138,9 @@ local — funciona direto em produção serverless.
 
 ### Login e papéis
 - **Login** (`/login`): autenticação via NextAuth (credenciais + senha com hash).
+  Aceita tanto o e-mail quanto um nome de usuário opcional (`username`,
+  definido na criação do técnico/parceiro ou editável direto no banco pro
+  admin) — ambos podem ser usados no mesmo campo pra entrar.
 - **Painel** (`/painel`, somente admin): cadastro de clientes, técnicos,
   parceiros e ordens de serviço, agenda do dia, Visão Geral e financeiro.
 - **Técnico** (`/tecnico`): lista apenas as OS atribuídas ao usuário logado (o

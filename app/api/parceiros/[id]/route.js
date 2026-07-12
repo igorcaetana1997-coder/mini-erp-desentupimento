@@ -16,7 +16,7 @@ export async function GET(req, { params }) {
         include: { cliente: true, technician: { select: { id: true, name: true } } },
         orderBy: { createdAt: "desc" },
       },
-      logins: { select: { id: true, email: true } },
+      logins: { select: { id: true, email: true, username: true } },
     },
   });
 

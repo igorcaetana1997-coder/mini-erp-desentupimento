@@ -9,7 +9,7 @@ import { LogIn } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,20 +17,20 @@ export default function LoginForm() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!email.trim() || !password) {
-      setError("Preencha e-mail e senha.");
+    if (!login.trim() || !password) {
+      setError("Preencha e-mail (ou usuário) e senha.");
       return;
     }
     setLoading(true);
     const result = await signIn("credentials", {
-      email: email.trim(),
+      login: login.trim(),
       password,
       redirect: false,
     });
     setLoading(false);
 
     if (result?.error) {
-      setError("E-mail ou senha inválidos.");
+      setError("E-mail/usuário ou senha inválidos.");
       return;
     }
 
@@ -55,14 +55,14 @@ export default function LoginForm() {
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div>
           <label className="text-[11px] font-bold uppercase tracking-wide text-[rgb(var(--ink))]">
-            E-mail
+            E-mail ou usuário
           </label>
           <input
             autoFocus
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@empresa.com"
+            type="text"
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
+            placeholder="voce@empresa.com ou usuário"
             className="w-full mt-1 border border-[rgb(var(--border-strong)/0.3)] px-2 py-2 text-sm outline-none focus:border-[#1E7A52] bg-[rgb(var(--input-bg))]"
           />
         </div>
