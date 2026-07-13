@@ -2,18 +2,32 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, UserPlus, Trash2, Handshake } from "lucide-react";
+import { Plus, UserPlus, Trash2, Handshake, FileText } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ClientForm from "@/components/ClientForm";
 import OsForm from "@/components/OsForm";
+import OrcamentoForm from "@/components/OrcamentoForm";
 import Ticket from "@/components/Ticket";
 import TicketActions from "@/components/TicketActions";
 import { formatEndereco } from "@/lib/formatEndereco";
+
+const ORCAMENTO_STATUS_CLASSES = {
+  pendente: "bg-[#E8A33D]/15 text-[#E8A33D]",
+  aprovado: "bg-[#1E7A52]/15 text-[#1E7A52]",
+  recusado: "bg-[#A02018]/15 text-[#A02018]",
+};
+
+const ORCAMENTO_STATUS_LABELS = {
+  pendente: "Pendente",
+  aprovado: "Aprovado",
+  recusado: "Recusado",
+};
 
 export default function PainelClient() {
   const [clients, setClients] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
   const [parceiros, setParceiros] = useState([]);
+  const [orcamentos, setOrcamentos] = useState([]);
   const [osList, setOsList] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
@@ -21,11 +35,13 @@ export default function PainelClient() {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showTecnicoForm, setShowTecnicoForm] = useState(false);
   const [showParceiroForm, setShowParceiroForm] = useState(false);
+  const [showOrcamentoForm, setShowOrcamentoForm] = useState(false);
   const [showOsForm, setShowOsForm] = useState(false);
 
   const [savingClient, setSavingClient] = useState(false);
   const [savingTecnico, setSavingTecnico] = useState(false);
   const [savingParceiro, setSavingParceiro] = useState(false);
+  const [savingOrcamento, setSavingOrcamento] = useState(false);
   const [savingOs, setSavingOs] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [confirmClientId, setConfirmClientId] = useState(null);
@@ -34,18 +50,20 @@ export default function PainelClient() {
 
   const loadAll = async () => {
     try {
-      const [clientesRes, tecnicosRes, parceirosRes, ordensRes] = await Promise.all([
+      const [clientesRes, tecnicosRes, parceirosRes, orcamentosRes, ordensRes] = await Promise.all([
         fetch("/api/clientes"),
         fetch("/api/tecnicos"),
         fetch("/api/parceiros"),
+        fetch("/api/orcamentos"),
         fetch("/api/ordens"),
       ]);
-      if (!clientesRes.ok || !tecnicosRes.ok || !parceirosRes.ok || !ordensRes.ok) {
+      if (!clientesRes.ok || !tecnicosRes.ok || !parceirosRes.ok || !orcamentosRes.ok || !ordensRes.ok) {
         throw new Error("Falha ao carregar dados");
       }
       setClients(await clientesRes.json());
       setTecnicos(await tecnicosRes.json());
       setParceiros(await parceirosRes.json());
+      setOrcamentos(await orcamentosRes.json());
       setOsList(await ordensRes.json());
     } catch (e) {
       setError("Não foi possível carregar os dados. Tente recarregar a página.");
@@ -112,6 +130,25 @@ export default function PainelClient() {
       setError(e.message || "Não foi possível salvar o parceiro.");
     } finally {
       setSavingParceiro(false);
+    }
+  };
+
+  const addOrcamento = async (data) => {
+    setSavingOrcamento(true);
+    try {
+      const res = await fetch("/api/orcamentos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro ao salvar orçamento");
+      setOrcamentos((prev) => [json, ...prev]);
+      setShowOrcamentoForm(false);
+    } catch (e) {
+      setError(e.message || "Não foi possível salvar o orçamento.");
+    } finally {
+      setSavingOrcamento(false);
     }
   };
 
@@ -252,7 +289,7 @@ export default function PainelClient() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Clientes */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -490,6 +527,68 @@ export default function PainelClient() {
             )}
           </div>
         </div>
+
+        {/* Orçamentos */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-black uppercase tracking-tight text-[rgb(var(--ink-strong)/1)]">
+              Orçamentos <span className="text-[rgb(var(--stone))] font-normal">({orcamentos.length})</span>
+            </h2>
+            <button
+              onClick={() => setShowOrcamentoForm(true)}
+              disabled={clients.length === 0}
+              className="flex items-center gap-1 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase px-3 py-1.5 hover:bg-[#175F40] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileText size={14} /> Novo
+            </button>
+          </div>
+
+          {showOrcamentoForm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+              <div className="w-full max-w-md my-4">
+                <OrcamentoForm
+                  clients={clients}
+                  saving={savingOrcamento}
+                  onSave={addOrcamento}
+                  onCancel={() => setShowOrcamentoForm(false)}
+                  onClienteCriado={(c) => setClients((prev) => [c, ...prev])}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            {orcamentos.length === 0 && !showOrcamentoForm && (
+              <EmptyState text="Nenhum orçamento criado ainda." />
+            )}
+            {orcamentos.slice(0, 3).map((o) => (
+              <Link
+                key={o.id}
+                href={`/painel/orcamentos/${o.id}`}
+                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{o.cliente?.name}</p>
+                  <p className="text-xs text-[rgb(var(--ink))] truncate">{o.serviceType}</p>
+                  <p className="text-xs text-[rgb(var(--stone))]">R$ {Number(o.value).toFixed(2)}</p>
+                </div>
+                <span
+                  className={`shrink-0 text-[10px] font-bold uppercase px-1.5 py-0.5 ${ORCAMENTO_STATUS_CLASSES[o.status]}`}
+                >
+                  {ORCAMENTO_STATUS_LABELS[o.status]}
+                </span>
+              </Link>
+            ))}
+            {orcamentos.length > 0 && (
+              <Link
+                href="/painel/orcamentos"
+                className="text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline text-center py-1"
+              >
+                {orcamentos.length > 3 ? `Ver mais (${orcamentos.length - 3}) →` : "Ver lista completa →"}
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Ordens de serviço */}
@@ -524,6 +623,7 @@ export default function PainelClient() {
                 saving={savingOs}
                 onSave={addOs}
                 onCancel={() => setShowOsForm(false)}
+                onClienteCriado={(c) => setClients((prev) => [c, ...prev])}
               />
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Wrench } from "lucide-react";
+import ClientForm from "./ClientForm";
 
 const SERVICE_TYPES = [
   "Desentupimento de vaso sanitário",
@@ -14,6 +15,7 @@ const SERVICE_TYPES = [
 
 const OUTRO_SERVICO = "Outro serviço";
 const OUTRO_PREFIXO = "Outro serviço: ";
+const NOVO_CLIENTE = "__novo__";
 
 const PAYMENT_METHODS = [
   { value: "", label: "Forma de pagamento (opcional)" },
@@ -34,8 +36,10 @@ const PARCERIA_TIPOS = [
   { value: "recebido", label: "Recebi dele — eu pago comissão" },
 ];
 
-export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCancel, saving }) {
-  const [clientId, setClientId] = useState(clients[0]?.id || "");
+export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCancel, onClienteCriado, saving }) {
+  const [clientId, setClientId] = useState(clients[0]?.id || NOVO_CLIENTE);
+  const [savingNovoCliente, setSavingNovoCliente] = useState(false);
+  const [erroNovoCliente, setErroNovoCliente] = useState("");
   const [serviceType, setServiceType] = useState(SERVICE_TYPES[0]);
   const [outroTexto, setOutroTexto] = useState("");
   const [technicianId, setTechnicianId] = useState("");
@@ -48,8 +52,28 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
   const [parceriaTipo, setParceriaTipo] = useState(PARCERIA_TIPOS[0].value);
   const [parceriaPercentual, setParceriaPercentual] = useState("");
 
+  const criarClienteInline = async (data) => {
+    setSavingNovoCliente(true);
+    setErroNovoCliente("");
+    try {
+      const res = await fetch("/api/clientes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Não foi possível salvar o cliente.");
+      onClienteCriado?.(json);
+      setClientId(json.id);
+    } catch (e) {
+      setErroNovoCliente(e.message || "Não foi possível salvar o cliente.");
+    } finally {
+      setSavingNovoCliente(false);
+    }
+  };
+
   const submit = () => {
-    if (!clientId || !scheduledAt) return;
+    if (!clientId || clientId === NOVO_CLIENTE || !scheduledAt) return;
     const finalServiceType =
       serviceType === OUTRO_SERVICO && outroTexto.trim()
         ? `${OUTRO_PREFIXO}${outroTexto.trim()}`
@@ -83,6 +107,7 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
         onChange={(e) => setClientId(e.target.value)}
         className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
       >
+        <option value={NOVO_CLIENTE}>+ Novo cliente</option>
         {clients.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
@@ -90,6 +115,21 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
         ))}
       </select>
 
+      {clientId === NOVO_CLIENTE ? (
+        <>
+          {erroNovoCliente && (
+            <p className="text-xs font-semibold text-[#A02018] border border-[#A02018]/40 bg-[#A02018]/10 px-2 py-1.5">
+              {erroNovoCliente}
+            </p>
+          )}
+          <ClientForm
+            saving={savingNovoCliente}
+            onSave={criarClienteInline}
+            onCancel={() => setClientId(clients[0]?.id || NOVO_CLIENTE)}
+          />
+        </>
+      ) : (
+        <>
       <select
         value={serviceType}
         onChange={(e) => setServiceType(e.target.value)}
@@ -224,6 +264,8 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
       >
         <Wrench size={14} /> {saving ? "Abrindo…" : "Abrir OS"}
       </button>
+        </>
+      )}
     </div>
   );
 }

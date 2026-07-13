@@ -53,7 +53,8 @@ model Cliente {
   ultimoParabensAno Int? // ano em que a mensagem de aniversário automática já foi enviada
   deletedAt      DateTime? // preenchido = está na lixeira; null = ativo
 
-  ordens OrdemServico[]
+  ordens     OrdemServico[]
+  orcamentos Orcamento[]
 }
 
 model OrdemServico {
@@ -95,9 +96,26 @@ model OrdemServico {
 
   deletedAt DateTime? // preenchido = está na lixeira; null = ativa
 
+  orcamentoOrigem Orcamento? // orçamento que originou esta OS, se veio de um (lado reverso da relação 1:1)
+
   fotos     FotoServico[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+model Orcamento {
+  id             String        @id @default(cuid())
+  clienteId      String
+  cliente        Cliente       @relation(fields: [clienteId], references: [id])
+  serviceType    String
+  value          Float
+  validoAte      DateTime? // validade do orçamento (opcional)
+  observacoes    String?
+  status         String        @default("pendente") // "pendente" | "aprovado" | "recusado"
+  ordemServicoId String?       @unique // preenchido quando aprovado e a OS é gerada automaticamente
+  ordemServico   OrdemServico? @relation(fields: [ordemServicoId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model FotoServico {

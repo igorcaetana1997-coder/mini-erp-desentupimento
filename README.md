@@ -288,6 +288,26 @@ botão "Imprimir / salvar PDF" usa a função de impressão do próprio navegado
 link que abre o WhatsApp do cliente (`wa.me`) com uma mensagem pronta; anexar
 o PDF salvo é manual, já que não há integração paga de envio automático.
 
+### Orçamentos: gerar, enviar por PDF/WhatsApp e aprovar → gera OS
+Antes de abrir uma OS, o admin pode montar um **orçamento** pra um cliente
+(`/painel/orcamentos`): serviço, valor, validade opcional e observações. A
+página de detalhe (`/painel/orcamentos/[id]`) reaproveita exatamente o mesmo
+mecanismo do recibo — impressão do navegador (`window.print()`) pra gerar o
+PDF e um link `wa.me` com mensagem pronta pro WhatsApp do cliente, sem
+depender de nenhuma biblioteca de PDF nem de envio automático de arquivo.
+
+Enquanto o orçamento está **pendente**, dá pra editar, marcar como
+**aprovado** (cria a Ordem de Serviço automaticamente, com o mesmo cliente,
+serviço e valor do orçamento — a data da visita fica em branco pra o admin
+preencher depois editando a OS) ou marcar como **recusado** (não gera OS
+nenhuma). Orçamento é um passo opcional: continua sendo possível abrir uma OS
+direto, sem passar por orçamento nenhum.
+
+Tanto no formulário de Nova OS quanto no de Novo Orçamento, o campo de
+cliente tem uma opção **"+ Novo cliente"** que abre o cadastro completo de
+cliente ali mesmo, sem sair da tela — útil pra montar um orçamento ou abrir
+uma OS pra alguém que ainda não está cadastrado.
+
 ### Excluir OS
 O admin pode excluir uma ordem de serviço definitivamente (qualquer status),
 com uma confirmação inline antes de apagar ("Excluir OS" → "Confirmar
@@ -371,6 +391,8 @@ app/
     parceiros/                  lista completa de parceiros/terceirizados (+ exclusão)
     parceiros/[id]/             detalhe do parceiro + histórico de OS
     ordens/                     lista completa de OS (mesmas ações do painel)
+    orcamentos/                 lista completa de orçamentos (+ criação)
+    orcamentos/[id]/             detalhe do orçamento — imprimível/PDF, WhatsApp, editar/aprovar/recusar/excluir
     agenda/                     OS do dia, ordenadas por horário
     financeiro/                 faturamento + despesas + comissões + saldo (período/técnico/parceiro)
     visao-geral/                dashboard do mês: pipeline, produção por técnico/parceiro, faixas de comissão
@@ -398,6 +420,8 @@ app/
     ordens/[id]/recusar        PATCH aberta -> recusada (só técnico dono, motivo obrigatório)
     ordens/[id]/concluir       PATCH andamento -> concluida (assinatura obrigatória)
     ordens/[id]/fotos          GET / POST (fotos em base64)
+    orcamentos                 GET / POST (criar orçamento) — só admin
+    orcamentos/[id]             GET / PATCH (editar enquanto pendente; status aprovado cria a OS) / DELETE — só admin
     despesas                   GET / POST (lançar despesa) — só admin
     despesas/[id]              DELETE — só admin
     relatorios/financeiro      GET agregado (faturamento + despesas + comissões + saldo) — só admin
@@ -406,7 +430,7 @@ app/
 components/
   Ticket, Stamp, TicketActions  card da OS + botões de ação por status/papel
   ConcluirOsModal, RecusarOsModal, EditarOsModal, SignaturePad
-  ClientForm, OsForm, TopBar, EmptyState
+  ClientForm, OsForm, OrcamentoForm, TopBar, EmptyState
   ThemeProvider, ThemeToggle     modo claro/escuro (contexto + botão sol/lua)
 lib/
   prisma.js, auth.js            cliente Prisma e configuração do NextAuth

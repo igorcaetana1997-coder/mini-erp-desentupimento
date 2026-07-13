@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Trash2,
+  FileText,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
@@ -23,6 +24,7 @@ const ADMIN_LINKS = [
   { href: "/painel/visao-geral", label: "Visão Geral", icon: LayoutGrid },
   { href: "/painel", label: "Painel", icon: LayoutDashboard },
   { href: "/painel/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/painel/orcamentos", label: "Orçamentos", icon: FileText },
   { href: "/painel/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/painel/lixeira", label: "Lixeira", icon: Trash2 },
   { href: "/tecnico", label: "Técnico", icon: Smartphone },
