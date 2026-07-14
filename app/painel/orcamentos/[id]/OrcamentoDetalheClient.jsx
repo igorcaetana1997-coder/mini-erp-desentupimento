@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Printer, MessageCircle, Pencil, Check, X as XIcon, Trash2 } from "lucide-react";
+import { ArrowLeft, Share2, MessageCircle, Pencil, Check, X as XIcon, Trash2 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import OrcamentoForm from "@/components/OrcamentoForm";
+import DocumentoCard from "@/components/DocumentoCard";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { compartilharOuBaixarPdf } from "@/lib/gerarPdf";
 
 const STATUS_STAMP = {
   pendente: { label: "Pendente", bg: "#E8A33D", text: "#1a1208" },
@@ -21,6 +22,7 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
   const [editando, setEditando] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmAcao, setConfirmAcao] = useState(null); // "aprovar" | "recusar" | "excluir"
+  const [compartilhando, setCompartilhando] = useState(false);
 
   const load = async () => {
     try {
@@ -89,8 +91,42 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     }
   };
 
+  const handleCompartilhar = async () => {
+    if (!orcamento) return;
+    setError("");
+    setCompartilhando(true);
+    try {
+      const emitidoEmLabel = new Date(orcamento.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+      const numero = `Nº ${orcamento.id.slice(-6).toUpperCase()} · Emitido em ${emitidoEmLabel}${
+        orcamento.validoAte
+          ? ` · Válido até ${new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
+          : ""
+      }`;
+      const { default: OrcamentoPdfDocument } = await import("@/lib/pdf/OrcamentoPdfDocument");
+      const documento = (
+        <OrcamentoPdfDocument
+          orcamento={orcamento}
+          stamp={STATUS_STAMP[orcamento.status]}
+          emitidoEmLabel={emitidoEmLabel}
+          numero={numero}
+        />
+      );
+      await compartilharOuBaixarPdf(
+        documento,
+        `orcamento-${orcamento.id.slice(-6).toUpperCase()}.pdf`,
+        "Segue o orçamento do serviço."
+      );
+    } catch (e) {
+      if (e?.name !== "AbortError") {
+        setError("Não foi possível gerar o PDF. Tente novamente.");
+      }
+    } finally {
+      setCompartilhando(false);
+    }
+  };
+
   if (!loaded) {
-    return <div className="max-w-xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
+    return <div className="max-w-4xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
 
   if (error && !orcamento) {
@@ -110,188 +146,294 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
         )}. Baixe o PDF que geramos e anexe aqui, por favor.`
       )}`
     : null;
+  const emitidoEmLabel = new Date(orcamento.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
   return (
-    <div className="max-w-xl mx-auto p-4 md:p-8 print:p-0">
-      <div className="print:hidden">
-        <Link
-          href="/painel/orcamentos"
-          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] mb-4 hover:underline"
+    <div className="max-w-4xl mx-auto p-4 md:p-8">
+      <Link
+        href="/painel/orcamentos"
+        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] mb-4 hover:underline"
+      >
+        <ArrowLeft size={14} /> Voltar aos orçamentos
+      </Link>
+
+      {error && (
+        <div className="mb-4 border border-[#A02018]/40 bg-[#A02018]/10 text-[#A02018] text-sm px-3 py-2 flex items-center justify-between">
+          {error}
+          <button onClick={() => setError("")} className="font-bold ml-3">
+            ×
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          type="button"
+          onClick={handleCompartilhar}
+          disabled={compartilhando}
+          className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors disabled:opacity-60"
         >
-          <ArrowLeft size={14} /> Voltar aos orçamentos
-        </Link>
-
-        {error && (
-          <div className="mb-4 border border-[#A02018]/40 bg-[#A02018]/10 text-[#A02018] text-sm px-3 py-2 flex items-center justify-between">
-            {error}
-            <button onClick={() => setError("")} className="font-bold ml-3">
-              ×
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => window.print()}
+          <Share2 size={14} /> {compartilhando ? "Gerando PDF…" : "Compartilhar PDF"}
+        </button>
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-1.5 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#203D7B] transition-colors"
           >
-            <Printer size={14} /> Imprimir / salvar PDF
+            <MessageCircle size={14} /> Abrir WhatsApp do cliente
+          </a>
+        )}
+        {orcamento.status === "pendente" && (
+          <button
+            type="button"
+            onClick={() => setEditando(true)}
+            className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors"
+          >
+            <Pencil size={14} /> Editar
           </button>
-          {whatsappHref && (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors"
-            >
-              <MessageCircle size={14} /> Abrir WhatsApp do cliente
-            </a>
-          )}
-          {orcamento.status === "pendente" && (
-            <button
-              type="button"
-              onClick={() => setEditando(true)}
-              className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors"
-            >
-              <Pencil size={14} /> Editar
-            </button>
+        )}
+      </div>
+
+      {orcamento.status === "pendente" && (
+        <div className="mb-4">
+          {confirmAcao ? (
+            <div className="flex items-center justify-between gap-2 bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2">
+              <span className="text-xs text-[rgb(var(--ink-strong)/1)]">
+                {confirmAcao === "aprovar" && "Marcar como aprovado e criar a ordem de serviço?"}
+                {confirmAcao === "recusar" && "Marcar este orçamento como recusado?"}
+                {confirmAcao === "excluir" && "Excluir este orçamento definitivamente?"}
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setConfirmAcao(null)}
+                  className="text-[11px] text-[rgb(var(--ink))] hover:text-[rgb(var(--ink-strong)/1)] transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() =>
+                    confirmAcao === "excluir" ? excluir() : mudarStatus(confirmAcao === "aprovar" ? "aprovado" : "recusado")
+                  }
+                  className="text-[11px] font-bold text-[#A02018] hover:underline disabled:opacity-50"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmAcao("aprovar")}
+                className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors"
+              >
+                <Check size={14} /> Marcar como aprovado
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmAcao("recusar")}
+                className="flex items-center gap-1.5 border border-[#A02018]/40 text-[#A02018] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#A02018]/10 transition-colors"
+              >
+                <XIcon size={14} /> Marcar como recusado
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmAcao("excluir")}
+                className="flex items-center gap-1.5 text-[rgb(var(--stone))] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:text-[#A02018] transition-colors"
+              >
+                <Trash2 size={14} /> Excluir
+              </button>
+            </div>
           )}
         </div>
+      )}
 
-        {orcamento.status === "pendente" && (
-          <div className="mb-4">
-            {confirmAcao ? (
-              <div className="flex items-center justify-between gap-2 bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2">
-                <span className="text-xs text-[rgb(var(--ink-strong)/1)]">
-                  {confirmAcao === "aprovar" && "Marcar como aprovado e criar a ordem de serviço?"}
-                  {confirmAcao === "recusar" && "Marcar este orçamento como recusado?"}
-                  {confirmAcao === "excluir" && "Excluir este orçamento definitivamente?"}
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmAcao(null)}
-                    className="text-[11px] text-[rgb(var(--ink))] hover:text-[rgb(var(--ink-strong)/1)] transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() =>
-                      confirmAcao === "excluir" ? excluir() : mudarStatus(confirmAcao === "aprovar" ? "aprovado" : "recusado")
-                    }
-                    className="text-[11px] font-bold text-[#A02018] hover:underline disabled:opacity-50"
-                  >
-                    Confirmar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmAcao("aprovar")}
-                  className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors"
-                >
-                  <Check size={14} /> Marcar como aprovado
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmAcao("recusar")}
-                  className="flex items-center gap-1.5 border border-[#A02018]/40 text-[#A02018] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#A02018]/10 transition-colors"
-                >
-                  <XIcon size={14} /> Marcar como recusado
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmAcao("excluir")}
-                  className="flex items-center gap-1.5 text-[rgb(var(--stone))] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:text-[#A02018] transition-colors"
-                >
-                  <Trash2 size={14} /> Excluir
-                </button>
-              </div>
-            )}
+      {orcamento.status === "aprovado" && orcamento.ordemServico?.id && (
+        <p className="text-xs text-[rgb(var(--ink))] mb-4">
+          Aprovado — OS #{orcamento.ordemServico.id.slice(-6).toUpperCase()} criada.{" "}
+          <Link href="/painel/ordens" className="font-bold underline text-[rgb(var(--ink-strong)/1)]">
+            Ver ordens de serviço →
+          </Link>
+        </p>
+      )}
+
+      {editando && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-4">
+            <OrcamentoForm
+              clients={[orcamento.cliente]}
+              initial={orcamento}
+              saving={saving}
+              onSave={salvarEdicao}
+              onCancel={() => setEditando(false)}
+            />
           </div>
-        )}
+        </div>
+      )}
 
-        {orcamento.status === "aprovado" && orcamento.ordemServico?.id && (
-          <p className="text-xs text-[rgb(var(--ink))] mb-4">
-            Aprovado — OS #{orcamento.ordemServico.id.slice(-6).toUpperCase()} criada.{" "}
-            <Link href="/painel/ordens" className="font-bold underline text-[rgb(var(--ink-strong)/1)]">
-              Ver ordens de serviço →
-            </Link>
-          </p>
-        )}
-
-        {editando && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="w-full max-w-md my-4">
-              <OrcamentoForm
-                clients={[orcamento.cliente]}
-                initial={orcamento}
-                saving={saving}
-                onSave={salvarEdicao}
-                onCancel={() => setEditando(false)}
-              />
+      <div className="overflow-x-auto">
+        <DocumentoCard
+          kicker="Orçamento de serviço"
+          numero={`Nº ${orcamento.id.slice(-6).toUpperCase()} · Emitido em ${emitidoEmLabel}${
+            orcamento.validoAte
+              ? ` · Válido até ${new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
+              : ""
+          }`}
+          titulo={orcamento.serviceType}
+          stampLabel={stamp.label}
+          stampBg={stamp.bg}
+          stampText={stamp.text}
+          hash={`ORC-${orcamento.id.slice(-6).toUpperCase()}`}
+          emitidoEm={emitidoEmLabel}
+        >
+          <div className="info-grid">
+            <div>
+              <p className="field-label">Cliente</p>
+              <p className="field-value">{orcamento.cliente?.name}</p>
+              <p className="field-sub">{formatEndereco(orcamento.cliente)}</p>
+              <p className="field-sub">{orcamento.cliente?.phone}</p>
+            </div>
+            <div>
+              <p className="field-label">Validade do orçamento</p>
+              <p className="field-value">
+                {orcamento.validoAte
+                  ? new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+                  : "Não informada"}
+              </p>
+              <p className="field-sub">Sujeito a confirmação após vistoria no local.</p>
             </div>
           </div>
-        )}
+
+          <table className="items">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th className="num">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  {orcamento.serviceType}
+                  {orcamento.observacoes && <span className="sub-line">{orcamento.observacoes}</span>}
+                </td>
+                <td className="num">R$ {Number(orcamento.value).toFixed(2)}</td>
+              </tr>
+              <tr className="totals-row">
+                <td className="label">Valor do orçamento</td>
+                <td className="num">R$ {Number(orcamento.value).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p className="disclaimer">
+            Este orçamento não substitui nota fiscal e não constitui cobrança — os valores podem ser ajustados após
+            vistoria técnica no local.
+          </p>
+        </DocumentoCard>
       </div>
 
-      <div className="bg-[rgb(var(--surface))] border-2 border-[rgb(var(--border-strong)/1)] p-6 print:border-0 print:shadow-none">
-        <div className="flex items-center justify-between border-b-2 border-dashed border-[rgb(var(--border-strong)/0.3)] pb-3 mb-4">
-          <div>
-            <Image
-              src="/logo-horizontal-outline.png"
-              alt="Real Leader Desentupidora"
-              width={1800}
-              height={603}
-              className="h-10 w-auto mb-1"
-            />
-            <p className="text-xs text-[rgb(var(--stone))]">Orçamento</p>
-          </div>
-          <span
-            className="inline-block px-2.5 py-1 text-[10px] font-black uppercase tracking-widest -rotate-2 border-2"
-            style={{ background: stamp.bg, color: stamp.text, borderColor: stamp.text + "33" }}
-          >
-            {stamp.label}
-          </span>
-        </div>
-
-        <p className="font-mono text-xs text-[rgb(var(--stone))] mb-1">
-          Orçamento #{orcamento.id.slice(-6).toUpperCase()}
-        </p>
-        <p className="font-black uppercase text-[rgb(var(--ink-strong)/1)] text-xl mb-4">{orcamento.serviceType}</p>
-
-        <div className="grid sm:grid-cols-2 gap-4 text-sm mb-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase text-[rgb(var(--stone))]">Cliente</p>
-            <p className="text-[rgb(var(--ink-strong)/1)] font-semibold">{orcamento.cliente?.name}</p>
-            <p className="text-[rgb(var(--ink))]">{formatEndereco(orcamento.cliente)}</p>
-            <p className="text-[rgb(var(--ink))]">{orcamento.cliente?.phone}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase text-[rgb(var(--stone))]">Valor</p>
-            <p className="font-mono font-bold text-[rgb(var(--ink-strong)/1)] text-lg">
-              R$ {Number(orcamento.value).toFixed(2)}
-            </p>
-            {orcamento.validoAte && (
-              <p className="text-[rgb(var(--ink))]">
-                Válido até {new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {orcamento.observacoes && (
-          <div className="mb-4">
-            <p className="text-[10px] font-bold uppercase text-[rgb(var(--stone))]">Observações</p>
-            <p className="text-sm text-[rgb(var(--ink-strong)/1)]">{orcamento.observacoes}</p>
-          </div>
-        )}
-      </div>
+      <style jsx>{`
+        .info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+          padding: 18px 0;
+          border-top: 1px solid rgba(20, 45, 101, 0.16);
+        }
+        .field-label {
+          font-family: "Helvetica Neue", Arial, sans-serif;
+          font-size: 9.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          color: #948c7d;
+          margin: 0 0 4px;
+        }
+        .field-value {
+          font-size: 14px;
+          color: #221d14;
+          font-weight: 600;
+          margin: 0 0 2px;
+          line-height: 1.45;
+        }
+        .field-sub {
+          font-size: 12.5px;
+          color: #635b4c;
+          margin: 0;
+          line-height: 1.5;
+        }
+        :global(table.items) {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 6px;
+        }
+        :global(table.items thead th) {
+          font-family: "Helvetica Neue", Arial, sans-serif;
+          font-size: 9.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+          color: #f2efe9;
+          background: #142d65;
+          text-align: left;
+          padding: 8px 12px;
+        }
+        :global(table.items thead th.num) {
+          text-align: right;
+        }
+        :global(table.items tbody td) {
+          font-size: 13px;
+          color: #221d14;
+          padding: 12px;
+          border-bottom: 1px solid rgba(20, 45, 101, 0.14);
+          vertical-align: top;
+        }
+        :global(table.items tbody td.num) {
+          text-align: right;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+          font-weight: 600;
+        }
+        :global(table.items tbody .sub-line) {
+          display: block;
+          font-size: 11px;
+          color: #948c7d;
+          margin-top: 3px;
+          font-style: italic;
+        }
+        :global(table.items .totals-row td) {
+          border-bottom: none !important;
+          border-top: 2px solid #142d65;
+          padding-top: 12px !important;
+        }
+        :global(table.items .totals-row .label) {
+          font-family: "Helvetica Neue", Arial, sans-serif;
+          font-weight: 700;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #142d65;
+        }
+        :global(table.items .totals-row .num) {
+          font-family: "Helvetica Neue", Arial, sans-serif;
+          font-weight: 800;
+          font-size: 19px;
+          color: #142d65;
+        }
+        .disclaimer {
+          font-size: 10.5px;
+          color: #948c7d;
+          font-style: italic;
+          padding-top: 14px;
+          line-height: 1.55;
+        }
+      `}</style>
     </div>
   );
 }

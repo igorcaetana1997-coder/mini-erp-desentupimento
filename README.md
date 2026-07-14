@@ -279,22 +279,41 @@ não esteja recusada. As imagens são redimensionadas **no navegador** (até
 ~900px, JPEG) antes de enviar, e guardadas como base64 numa tabela própria
 (`FotoServico`) — não depende de nenhum serviço de storage externo.
 
-### Conclusão: recibo em PDF e WhatsApp
+### Conclusão: recibo profissional em PDF e WhatsApp
 Toda OS concluída tem um link "Ver recibo / gerar PDF" que abre
 `/ordens/[id]/recibo` (acessível pelo admin ou pelo técnico dono, mesmo fora
-do `/painel`). A página tem uma versão imprimível (CSS `@media print`) — o
-botão "Imprimir / salvar PDF" usa a função de impressão do próprio navegador
-(`window.print()`), sem depender de nenhuma biblioteca de PDF. Há também um
-link que abre o WhatsApp do cliente (`wa.me`) com uma mensagem pronta; anexar
-o PDF salvo é manual, já que não há integração paga de envio automático.
+do `/painel`). O recibo é um documento com papel timbrado da empresa (logo,
+razão social, CNPJ, endereço e contato — dados centralizados em
+`lib/company.js`), marca d'água discreta, tabela de itens com o valor e uma
+linha de total (refletindo se o serviço está pago, parcial ou pendente),
+materiais usados, avaliação do cliente e assinatura digital (quando
+capturada na conclusão).
+
+O botão **"Compartilhar PDF"** gera o PDF de verdade no navegador — via
+`@react-pdf/renderer` (`lib/pdf/`), que desenha o documento direto em PDF
+vetorial (texto nítido de verdade, não é screenshot/imagem comprimida, então
+não tem perda de qualidade nem desalinhamento de layout), sem precisar de
+nenhum serviço externo nem de headless browser no servidor — e usa a Web
+Share API do celular (`navigator.share` com arquivo, `lib/gerarPdf.js`) pra
+abrir direto o menu de compartilhamento do sistema, de onde dá pra escolher
+o WhatsApp já com o PDF anexado. Em navegadores/desktops sem suporte a
+compartilhar arquivo, o botão cai automaticamente pra baixar o PDF. Há
+também um link separado que abre o WhatsApp do cliente (`wa.me`) com uma
+mensagem pronta, pra quem prefere só
+avisar antes de anexar o arquivo manualmente.
+
+O documento em si (a folha do recibo) sempre usa um visual fixo de "papel"
+(claro), independente do tema (claro/escuro) do painel — só faz sentido
+assim porque ele vira PDF/impresso, e papel não tem "modo escuro".
 
 ### Orçamentos: gerar, enviar por PDF/WhatsApp e aprovar → gera OS
 Antes de abrir uma OS, o admin pode montar um **orçamento** pra um cliente
 (`/painel/orcamentos`): serviço, valor, validade opcional e observações. A
 página de detalhe (`/painel/orcamentos/[id]`) reaproveita exatamente o mesmo
-mecanismo do recibo — impressão do navegador (`window.print()`) pra gerar o
-PDF e um link `wa.me` com mensagem pronta pro WhatsApp do cliente, sem
-depender de nenhuma biblioteca de PDF nem de envio automático de arquivo.
+componente de documento do recibo (`components/DocumentoCard.jsx`) — mesmo
+papel timbrado com CNPJ, mesma tabela de itens, mesmo botão "Compartilhar
+PDF" (gera o PDF e usa o menu de compartilhamento do celular, com fallback
+de download) e o mesmo link `wa.me` pro WhatsApp do cliente.
 
 Enquanto o orçamento está **pendente**, dá pra editar, marcar como
 **aprovado** (cria a Ordem de Serviço automaticamente, com o mesmo cliente,
@@ -392,13 +411,13 @@ app/
     parceiros/[id]/             detalhe do parceiro + histórico de OS
     ordens/                     lista completa de OS (mesmas ações do painel)
     orcamentos/                 lista completa de orçamentos (+ criação)
-    orcamentos/[id]/             detalhe do orçamento — imprimível/PDF, WhatsApp, editar/aprovar/recusar/excluir
+    orcamentos/[id]/             detalhe do orçamento — compartilhar PDF, WhatsApp, editar/aprovar/recusar/excluir
     agenda/                     OS do dia, ordenadas por horário
     financeiro/                 faturamento + despesas + comissões + saldo (período/técnico/parceiro)
     visao-geral/                dashboard do mês: pipeline, produção por técnico/parceiro, faixas de comissão
   tecnico/                     visão mobile do técnico (somente as OS dele)
   parceiro/                    visão mobile do parceiro (somente as OS dele, edita valor)
-  ordens/[id]/recibo/          recibo imprimível/PDF (admin, técnico ou parceiro dono)
+  ordens/[id]/recibo/          recibo com papel timbrado + compartilhar PDF (admin, técnico ou parceiro dono)
   api/
     auth/[...nextauth]         rota do NextAuth
     auth/esqueci-senha          POST (gera token + envia e-mail via Resend) — resposta sempre genérica
@@ -431,6 +450,7 @@ components/
   Ticket, Stamp, TicketActions  card da OS + botões de ação por status/papel
   ConcluirOsModal, RecusarOsModal, EditarOsModal, SignaturePad
   ClientForm, OsForm, OrcamentoForm, TopBar, EmptyState
+  DocumentoCard.jsx              papel timbrado com CNPJ + marca d'água, reaproveitado pelo recibo e pelo orçamento
   ThemeProvider, ThemeToggle     modo claro/escuro (contexto + botão sol/lua)
 lib/
   prisma.js, auth.js            cliente Prisma e configuração do NextAuth
@@ -443,6 +463,9 @@ lib/
   email.js                        sendPasswordResetEmail(to, resetUrl) via Resend
   passwordReset.js                generateResetToken() / hashToken() — token de redefinição de senha
   whatsapp.js                     isWhatsappConfigured() / sendWhatsappMessage() via Z-API (ver seção 6)
+  company.js                      dados fiscais da empresa (razão social, CNPJ, endereço, contato) — papel timbrado
+  gerarPdf.js                     gerarPdfBlob() / compartilharOuBaixarPdf() via @react-pdf/renderer
+  pdf/                             templates do PDF vetorial (DocumentoPdfShell, ReciboPdfDocument, OrcamentoPdfDocument)
 prisma/                        schema.prisma, seed.js e migrations/
 middleware.js                   protege /painel, /tecnico, /parceiro e /ordens por login/papel
 vercel.json                     agendamento do cron diário de notificações (Vercel Cron Jobs)

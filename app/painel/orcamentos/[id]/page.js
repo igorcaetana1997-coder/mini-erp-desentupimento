@@ -10,7 +10,7 @@ export default async function OrcamentoDetalhePage({ params }) {
   if (session.user.role !== "admin") redirect("/tecnico");
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--page-bg))] font-sans print:bg-[rgb(var(--input-bg))]">
+    <div className="min-h-screen bg-[rgb(var(--page-bg))] font-sans">
       <TopBar user={session.user} />
       <OrcamentoDetalheClient orcamentoId={params.id} />
     </div>

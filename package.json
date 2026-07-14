@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
+    "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.65.0",
     "bcryptjs": "^2.4.3",
     "lucide-react": "^0.441.0",
     "next": "14.2.35",
     "next-auth": "^4.24.7",
+    "pako": "^1.0.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "resend": "^6.17.2"
