@@ -8,7 +8,7 @@ const WATERMARK_WIDTH = 300;
 
 export const styles = StyleSheet.create({
   page: {
-    backgroundColor: "#FCFAF4",
+    backgroundColor: "#FFFFFF",
     color: "#4A4437",
     fontFamily: "Times-Roman",
     fontSize: 9.5,

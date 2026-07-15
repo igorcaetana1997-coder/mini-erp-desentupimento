@@ -87,7 +87,7 @@ export default function DocumentoCard({
         .doc-page {
           width: 210mm;
           min-height: 297mm;
-          background: #fcfaf4;
+          background: #ffffff;
           color: #4a4437;
           font-family: Georgia, "Times New Roman", "Iowan Old Style", serif;
           position: relative;
