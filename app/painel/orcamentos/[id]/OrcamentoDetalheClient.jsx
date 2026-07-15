@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Share2, MessageCircle, Pencil, Check, X as XIcon, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Printer, MessageCircle, Pencil, Check, X as XIcon, Trash2 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import OrcamentoForm from "@/components/OrcamentoForm";
 import DocumentoCard from "@/components/DocumentoCard";
 import { formatEndereco } from "@/lib/formatEndereco";
-import { compartilharOuBaixarPdf } from "@/lib/gerarPdf";
+import { baixarPdf, imprimirPdf } from "@/lib/gerarPdf";
 
 const STATUS_STAMP = {
   pendente: { label: "Pendente", bg: "#E8A33D", text: "#1a1208" },
@@ -22,7 +22,7 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
   const [editando, setEditando] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmAcao, setConfirmAcao] = useState(null); // "aprovar" | "recusar" | "excluir"
-  const [compartilhando, setCompartilhando] = useState(false);
+  const [gerando, setGerando] = useState(null); // "baixar" | "imprimir" | null
 
   const load = async () => {
     try {
@@ -91,37 +91,49 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     }
   };
 
-  const handleCompartilhar = async () => {
+  const montarDocumentoPdf = async () => {
+    const emitidoEmLabel = new Date(orcamento.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    const numero = `Nº ${orcamento.id.slice(-6).toUpperCase()} · Emitido em ${emitidoEmLabel}${
+      orcamento.validoAte
+        ? ` · Válido até ${new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
+        : ""
+    }`;
+    const { default: OrcamentoPdfDocument } = await import("@/lib/pdf/OrcamentoPdfDocument");
+    return (
+      <OrcamentoPdfDocument
+        orcamento={orcamento}
+        stamp={STATUS_STAMP[orcamento.status]}
+        emitidoEmLabel={emitidoEmLabel}
+        numero={numero}
+      />
+    );
+  };
+
+  const handleBaixar = async () => {
     if (!orcamento) return;
     setError("");
-    setCompartilhando(true);
+    setGerando("baixar");
     try {
-      const emitidoEmLabel = new Date(orcamento.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-      const numero = `Nº ${orcamento.id.slice(-6).toUpperCase()} · Emitido em ${emitidoEmLabel}${
-        orcamento.validoAte
-          ? ` · Válido até ${new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
-          : ""
-      }`;
-      const { default: OrcamentoPdfDocument } = await import("@/lib/pdf/OrcamentoPdfDocument");
-      const documento = (
-        <OrcamentoPdfDocument
-          orcamento={orcamento}
-          stamp={STATUS_STAMP[orcamento.status]}
-          emitidoEmLabel={emitidoEmLabel}
-          numero={numero}
-        />
-      );
-      await compartilharOuBaixarPdf(
-        documento,
-        `orcamento-${orcamento.id.slice(-6).toUpperCase()}.pdf`,
-        "Segue o orçamento do serviço."
-      );
-    } catch (e) {
-      if (e?.name !== "AbortError") {
-        setError("Não foi possível gerar o PDF. Tente novamente.");
-      }
+      const documento = await montarDocumentoPdf();
+      await baixarPdf(documento, `orcamento-${orcamento.id.slice(-6).toUpperCase()}.pdf`);
+    } catch {
+      setError("Não foi possível gerar o PDF. Tente novamente.");
     } finally {
-      setCompartilhando(false);
+      setGerando(null);
+    }
+  };
+
+  const handleImprimir = async () => {
+    if (!orcamento) return;
+    setError("");
+    setGerando("imprimir");
+    try {
+      const documento = await montarDocumentoPdf();
+      await imprimirPdf(documento);
+    } catch {
+      setError("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setGerando(null);
     }
   };
 
@@ -169,11 +181,19 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
-          onClick={handleCompartilhar}
-          disabled={compartilhando}
+          onClick={handleBaixar}
+          disabled={gerando !== null}
           className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors disabled:opacity-60"
         >
-          <Share2 size={14} /> {compartilhando ? "Gerando PDF…" : "Compartilhar PDF"}
+          <Download size={14} /> {gerando === "baixar" ? "Gerando PDF…" : "Baixar PDF"}
+        </button>
+        <button
+          type="button"
+          onClick={handleImprimir}
+          disabled={gerando !== null}
+          className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors disabled:opacity-60"
+        >
+          <Printer size={14} /> {gerando === "imprimir" ? "Gerando PDF…" : "Imprimir"}
         </button>
         {whatsappHref && (
           <a
@@ -185,73 +205,73 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
             <MessageCircle size={14} /> Abrir WhatsApp do cliente
           </a>
         )}
-        {orcamento.status === "pendente" && (
-          <button
-            type="button"
-            onClick={() => setEditando(true)}
-            className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors"
-          >
-            <Pencil size={14} /> Editar
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setEditando(true)}
+          className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors"
+        >
+          <Pencil size={14} /> Editar
+        </button>
       </div>
 
-      {orcamento.status === "pendente" && (
-        <div className="mb-4">
-          {confirmAcao ? (
-            <div className="flex items-center justify-between gap-2 bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2">
-              <span className="text-xs text-[rgb(var(--ink-strong)/1)]">
-                {confirmAcao === "aprovar" && "Marcar como aprovado e criar a ordem de serviço?"}
-                {confirmAcao === "recusar" && "Marcar este orçamento como recusado?"}
-                {confirmAcao === "excluir" && "Excluir este orçamento definitivamente?"}
-              </span>
-              <div className="flex items-center gap-2 shrink-0">
+      <div className="mb-4">
+        {confirmAcao ? (
+          <div className="flex items-center justify-between gap-2 bg-[rgb(var(--input-bg))] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2">
+            <span className="text-xs text-[rgb(var(--ink-strong)/1)]">
+              {confirmAcao === "aprovar" && "Marcar como aprovado e criar a ordem de serviço?"}
+              {confirmAcao === "recusar" && "Marcar este orçamento como recusado?"}
+              {confirmAcao === "excluir" && "Excluir este orçamento definitivamente?"}
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setConfirmAcao(null)}
+                className="text-[11px] text-[rgb(var(--ink))] hover:text-[rgb(var(--ink-strong)/1)] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() =>
+                  confirmAcao === "excluir" ? excluir() : mudarStatus(confirmAcao === "aprovar" ? "aprovado" : "recusado")
+                }
+                className="text-[11px] font-bold text-[#A02018] hover:underline disabled:opacity-50"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {orcamento.status === "pendente" && (
+              <>
                 <button
                   type="button"
-                  onClick={() => setConfirmAcao(null)}
-                  className="text-[11px] text-[rgb(var(--ink))] hover:text-[rgb(var(--ink-strong)/1)] transition-colors"
+                  onClick={() => setConfirmAcao("aprovar")}
+                  className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors"
                 >
-                  Cancelar
+                  <Check size={14} /> Marcar como aprovado
                 </button>
                 <button
                   type="button"
-                  disabled={saving}
-                  onClick={() =>
-                    confirmAcao === "excluir" ? excluir() : mudarStatus(confirmAcao === "aprovar" ? "aprovado" : "recusado")
-                  }
-                  className="text-[11px] font-bold text-[#A02018] hover:underline disabled:opacity-50"
+                  onClick={() => setConfirmAcao("recusar")}
+                  className="flex items-center gap-1.5 border border-[#A02018]/40 text-[#A02018] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#A02018]/10 transition-colors"
                 >
-                  Confirmar
+                  <XIcon size={14} /> Marcar como recusado
                 </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmAcao("aprovar")}
-                className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors"
-              >
-                <Check size={14} /> Marcar como aprovado
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmAcao("recusar")}
-                className="flex items-center gap-1.5 border border-[#A02018]/40 text-[#A02018] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#A02018]/10 transition-colors"
-              >
-                <XIcon size={14} /> Marcar como recusado
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmAcao("excluir")}
-                className="flex items-center gap-1.5 text-[rgb(var(--stone))] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:text-[#A02018] transition-colors"
-              >
-                <Trash2 size={14} /> Excluir
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setConfirmAcao("excluir")}
+              className="flex items-center gap-1.5 text-[rgb(var(--stone))] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:text-[#A02018] transition-colors"
+            >
+              <Trash2 size={14} /> Excluir
+            </button>
+          </div>
+        )}
+      </div>
 
       {orcamento.status === "aprovado" && orcamento.ordemServico?.id && (
         <p className="text-xs text-[rgb(var(--ink))] mb-4">

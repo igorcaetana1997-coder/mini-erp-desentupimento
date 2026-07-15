@@ -289,16 +289,14 @@ linha de total (refletindo se o serviço está pago, parcial ou pendente),
 materiais usados, avaliação do cliente e assinatura digital (quando
 capturada na conclusão).
 
-O botão **"Compartilhar PDF"** gera o PDF de verdade no navegador — via
-`@react-pdf/renderer` (`lib/pdf/`), que desenha o documento direto em PDF
-vetorial (texto nítido de verdade, não é screenshot/imagem comprimida, então
-não tem perda de qualidade nem desalinhamento de layout), sem precisar de
-nenhum serviço externo nem de headless browser no servidor — e usa a Web
-Share API do celular (`navigator.share` com arquivo, `lib/gerarPdf.js`) pra
-abrir direto o menu de compartilhamento do sistema, de onde dá pra escolher
-o WhatsApp já com o PDF anexado. Em navegadores/desktops sem suporte a
-compartilhar arquivo, o botão cai automaticamente pra baixar o PDF. Há
-também um link separado que abre o WhatsApp do cliente (`wa.me`) com uma
+Os botões **"Baixar PDF"** e **"Imprimir"** geram o PDF de verdade no
+navegador — via `@react-pdf/renderer` (`lib/pdf/`), que desenha o documento
+direto em PDF vetorial (texto nítido de verdade, não é screenshot/imagem
+comprimida, então não tem perda de qualidade nem desalinhamento de layout),
+sem precisar de nenhum serviço externo nem de headless browser no servidor
+(`lib/gerarPdf.js`). "Baixar PDF" salva o arquivo direto; "Imprimir" abre o
+diálogo de impressão do navegador já com o PDF carregado. Há também um link
+separado que abre o WhatsApp do cliente (`wa.me`) com uma
 mensagem pronta, pra quem prefere só
 avisar antes de anexar o arquivo manualmente.
 
@@ -311,16 +309,17 @@ Antes de abrir uma OS, o admin pode montar um **orçamento** pra um cliente
 (`/painel/orcamentos`): serviço, valor, validade opcional e observações. A
 página de detalhe (`/painel/orcamentos/[id]`) reaproveita exatamente o mesmo
 componente de documento do recibo (`components/DocumentoCard.jsx`) — mesmo
-papel timbrado com CNPJ, mesma tabela de itens, mesmo botão "Compartilhar
-PDF" (gera o PDF e usa o menu de compartilhamento do celular, com fallback
-de download) e o mesmo link `wa.me` pro WhatsApp do cliente.
+papel timbrado com CNPJ, mesma tabela de itens, os mesmos botões **"Baixar
+PDF"** e **"Imprimir"** e o mesmo link `wa.me` pro WhatsApp do cliente.
 
-Enquanto o orçamento está **pendente**, dá pra editar, marcar como
-**aprovado** (cria a Ordem de Serviço automaticamente, com o mesmo cliente,
-serviço e valor do orçamento — a data da visita fica em branco pra o admin
-preencher depois editando a OS) ou marcar como **recusado** (não gera OS
-nenhuma). Orçamento é um passo opcional: continua sendo possível abrir uma OS
-direto, sem passar por orçamento nenhum.
+**Editar e excluir funcionam em qualquer status** (pendente, aprovado ou
+recusado) — útil pra corrigir um valor ou serviço depois de decidido. Já
+**marcar como aprovado/recusado** só aparece enquanto o orçamento está
+**pendente** (aprovar cria a Ordem de Serviço automaticamente, com o mesmo
+cliente, serviço e valor do orçamento — a data da visita fica em branco pra
+o admin preencher depois editando a OS; recusar não gera OS nenhuma).
+Orçamento é um passo opcional: continua sendo possível abrir uma OS direto,
+sem passar por orçamento nenhum.
 
 Tanto no formulário de Nova OS quanto no de Novo Orçamento, o campo de
 cliente tem uma opção **"+ Novo cliente"** que abre o cadastro completo de
@@ -411,7 +410,7 @@ app/
     parceiros/[id]/             detalhe do parceiro + histórico de OS
     ordens/                     lista completa de OS (mesmas ações do painel)
     orcamentos/                 lista completa de orçamentos (+ criação)
-    orcamentos/[id]/             detalhe do orçamento — compartilhar PDF, WhatsApp, editar/aprovar/recusar/excluir
+    orcamentos/[id]/             detalhe do orçamento — baixar PDF, imprimir, WhatsApp, editar/excluir (qualquer status), aprovar/recusar (pendente)
     agenda/                     OS do dia, ordenadas por horário
     financeiro/                 faturamento + despesas + comissões + saldo (período/técnico/parceiro)
     visao-geral/                dashboard do mês: pipeline, produção por técnico/parceiro, faixas de comissão
@@ -440,7 +439,7 @@ app/
     ordens/[id]/concluir       PATCH andamento -> concluida (assinatura obrigatória)
     ordens/[id]/fotos          GET / POST (fotos em base64)
     orcamentos                 GET / POST (criar orçamento) — só admin
-    orcamentos/[id]             GET / PATCH (editar enquanto pendente; status aprovado cria a OS) / DELETE — só admin
+    orcamentos/[id]             GET / PATCH (editar campos em qualquer status; status aprovado cria a OS, só a partir de pendente) / DELETE (qualquer status) — só admin
     despesas                   GET / POST (lançar despesa) — só admin
     despesas/[id]              DELETE — só admin
     relatorios/financeiro      GET agregado (faturamento + despesas + comissões + saldo) — só admin

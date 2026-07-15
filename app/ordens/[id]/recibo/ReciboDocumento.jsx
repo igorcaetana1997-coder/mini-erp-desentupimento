@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, MessageCircle } from "lucide-react";
+import { Download, Printer, MessageCircle } from "lucide-react";
 import DocumentoCard from "@/components/DocumentoCard";
 import { STATUS as OS_STATUS } from "@/components/Stamp";
 import { formatEndereco } from "@/lib/formatEndereco";
-import { compartilharOuBaixarPdf } from "@/lib/gerarPdf";
+import { baixarPdf, imprimirPdf } from "@/lib/gerarPdf";
 
 const PAYMENT_LABELS = {
   dinheiro: "Dinheiro",
@@ -30,7 +30,7 @@ export default function ReciboDocumento({
   assinaturaCliente,
   emitidoEmLabel,
 }) {
-  const [compartilhando, setCompartilhando] = useState(false);
+  const [gerando, setGerando] = useState(null); // "baixar" | "imprimir" | null
   const [erro, setErro] = useState("");
 
   const digits = (cliente?.phone || "").replace(/\D/g, "");
@@ -49,34 +49,49 @@ export default function ReciboDocumento({
       ? `Pago parcialmente · falta R$ ${statusPagamento.faltante.toFixed(2)}`
       : "Valor total (pendente)";
 
-  const handleCompartilhar = async () => {
+  const montarDocumentoPdf = async () => {
+    const { default: ReciboPdfDocument } = await import("@/lib/pdf/ReciboPdfDocument");
+    return (
+      <ReciboPdfDocument
+        osId={osId}
+        serviceType={serviceType}
+        cliente={cliente}
+        dataVisitaLabel={dataVisitaLabel}
+        tecnicoNome={tecnicoNome}
+        value={value}
+        materiais={materiais}
+        avaliacaoNota={avaliacaoNota}
+        assinaturaCliente={assinaturaCliente}
+        totalLabel={totalLabel}
+        osStamp={osStamp}
+        emitidoEmLabel={emitidoEmLabel}
+      />
+    );
+  };
+
+  const handleBaixar = async () => {
     setErro("");
-    setCompartilhando(true);
+    setGerando("baixar");
     try {
-      const { default: ReciboPdfDocument } = await import("@/lib/pdf/ReciboPdfDocument");
-      const documento = (
-        <ReciboPdfDocument
-          osId={osId}
-          serviceType={serviceType}
-          cliente={cliente}
-          dataVisitaLabel={dataVisitaLabel}
-          tecnicoNome={tecnicoNome}
-          value={value}
-          materiais={materiais}
-          avaliacaoNota={avaliacaoNota}
-          assinaturaCliente={assinaturaCliente}
-          totalLabel={totalLabel}
-          osStamp={osStamp}
-          emitidoEmLabel={emitidoEmLabel}
-        />
-      );
-      await compartilharOuBaixarPdf(documento, `recibo-os-${osId.slice(-6).toUpperCase()}.pdf`, "Segue o recibo do serviço.");
-    } catch (e) {
-      if (e?.name !== "AbortError") {
-        setErro("Não foi possível gerar o PDF. Tente novamente.");
-      }
+      const documento = await montarDocumentoPdf();
+      await baixarPdf(documento, `recibo-os-${osId.slice(-6).toUpperCase()}.pdf`);
+    } catch {
+      setErro("Não foi possível gerar o PDF. Tente novamente.");
     } finally {
-      setCompartilhando(false);
+      setGerando(null);
+    }
+  };
+
+  const handleImprimir = async () => {
+    setErro("");
+    setGerando("imprimir");
+    try {
+      const documento = await montarDocumentoPdf();
+      await imprimirPdf(documento);
+    } catch {
+      setErro("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setGerando(null);
     }
   };
 
@@ -85,11 +100,19 @@ export default function ReciboDocumento({
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           type="button"
-          onClick={handleCompartilhar}
-          disabled={compartilhando}
+          onClick={handleBaixar}
+          disabled={gerando !== null}
           className="flex items-center gap-1.5 bg-[#1E7A52] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#175F40] transition-colors disabled:opacity-60"
         >
-          <Share2 size={14} /> {compartilhando ? "Gerando PDF…" : "Compartilhar PDF"}
+          <Download size={14} /> {gerando === "baixar" ? "Gerando PDF…" : "Baixar PDF"}
+        </button>
+        <button
+          type="button"
+          onClick={handleImprimir}
+          disabled={gerando !== null}
+          className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors disabled:opacity-60"
+        >
+          <Printer size={14} /> {gerando === "imprimir" ? "Gerando PDF…" : "Imprimir"}
         </button>
         {whatsappHref && (
           <a

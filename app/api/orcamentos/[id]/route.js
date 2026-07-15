@@ -72,10 +72,6 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Status inválido" }, { status: 400 });
   }
 
-  if (orcamento.status !== "pendente") {
-    return NextResponse.json({ error: "Só é possível editar um orçamento ainda pendente" }, { status: 400 });
-  }
-
   const data = {};
   if (typeof body.serviceType === "string" && body.serviceType.trim()) {
     data.serviceType = body.serviceType.trim();
