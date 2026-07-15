@@ -7,6 +7,7 @@ import EmptyState from "@/components/EmptyState";
 import OrcamentoForm from "@/components/OrcamentoForm";
 import DocumentoCard from "@/components/DocumentoCard";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { formatMoeda } from "@/lib/formatMoeda";
 import { baixarPdf, imprimirPdf } from "@/lib/gerarPdf";
 
 const STATUS_STAMP = {
@@ -153,8 +154,8 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
   const digits = (orcamento.cliente?.phone || "").replace(/\D/g, "");
   const whatsappHref = digits
     ? `https://wa.me/55${digits}?text=${encodeURIComponent(
-        `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${Number(orcamento.value).toFixed(
-          2
+        `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(
+          orcamento.value
         )}. Baixe o PDF que geramos e anexe aqui, por favor.`
       )}`
     : null;
@@ -342,11 +343,11 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
                   {orcamento.serviceType}
                   {orcamento.observacoes && <span className="sub-line">{orcamento.observacoes}</span>}
                 </td>
-                <td className="num">R$ {Number(orcamento.value).toFixed(2)}</td>
+                <td className="num">R$ {formatMoeda(orcamento.value)}</td>
               </tr>
               <tr className="totals-row">
-                <td className="label">Valor do orçamento</td>
-                <td className="num">R$ {Number(orcamento.value).toFixed(2)}</td>
+                <td className="label">Valor total do orçamento</td>
+                <td className="num">R$ {formatMoeda(orcamento.value)}</td>
               </tr>
             </tbody>
           </table>

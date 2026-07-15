@@ -3,6 +3,7 @@
 import { AlertTriangle, User, MapPin, Phone, StickyNote, Wrench, Star, Camera, Handshake } from "lucide-react";
 import Stamp from "./Stamp";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { formatMoeda } from "@/lib/formatMoeda";
 import { getStatusPagamento } from "@/lib/paymentStatus";
 
 const PAGAMENTO_LABELS = {
@@ -93,7 +94,7 @@ export default function Ticket({ os, compact, actions }) {
             <span className="font-mono text-xs text-[rgb(var(--stone))]">{formatDateTime(os.scheduledAt)}</span>
           </div>
           <span className="font-mono font-bold text-[rgb(var(--ink-strong)/1)]">
-            {os.value ? `R$ ${Number(os.value).toFixed(2)}` : "—"}
+            {os.value ? `R$ ${formatMoeda(os.value)}` : "—"}
           </span>
         </div>
 
@@ -117,7 +118,7 @@ export default function Ticket({ os, compact, actions }) {
 
         {faltante > 0 && (
           <p className="text-[11px] font-semibold text-[#A02018] flex items-center gap-1.5 bg-[#A02018]/10 border border-[#A02018]/30 px-2 py-1">
-            <AlertTriangle size={12} className="shrink-0" /> Falta receber R$ {faltante.toFixed(2)}
+            <AlertTriangle size={12} className="shrink-0" /> Falta receber R$ {formatMoeda(faltante)}
           </p>
         )}
 
@@ -169,13 +170,13 @@ export default function Ticket({ os, compact, actions }) {
               <span>
                 Repassado a <span className="text-[rgb(var(--ink-strong)/1)] font-semibold">{os.parceiro.name}</span> —
                 comissão {os.parceriaPercentual}%
-                {os.value != null && ` (R$ ${(Number(os.value) * (os.parceriaPercentual / 100)).toFixed(2)})`}
+                {os.value != null && ` (R$ ${formatMoeda(Number(os.value) * (os.parceriaPercentual / 100))})`}
               </span>
             ) : (
               <span>
                 Recebido de <span className="text-[rgb(var(--ink-strong)/1)] font-semibold">{os.parceiro.name}</span> —
                 repasse {os.parceriaPercentual}%
-                {os.value != null && ` (R$ ${(Number(os.value) * (os.parceriaPercentual / 100)).toFixed(2)})`}
+                {os.value != null && ` (R$ ${formatMoeda(Number(os.value) * (os.parceriaPercentual / 100))})`}
               </span>
             )}
           </p>

@@ -21,6 +21,7 @@ import RecusarOsModal from "./RecusarOsModal";
 import EditarOsModal from "./EditarOsModal";
 import { resizeImageToDataUrl } from "@/lib/resizeImage";
 import { getStatusPagamento } from "@/lib/paymentStatus";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 export default function TicketActions({
   os,
@@ -172,7 +173,7 @@ export default function TicketActions({
           {statusPagamento === "pago" ? (
             <div className="flex items-center justify-between gap-2 bg-[#1E7A52]/10 border border-[#1E7A52]/30 px-2 py-1.5">
               <span className="text-[11px] font-semibold text-[#1E7A52]">
-                Pagamento confirmado (R$ {Number(os.value).toFixed(2)})
+                Pagamento confirmado (R$ {formatMoeda(os.value)})
               </span>
               <button
                 type="button"
@@ -194,7 +195,7 @@ export default function TicketActions({
             >
               <CircleDollarSign size={14} />
               {statusPagamento === "parcial"
-                ? `Registrar pagamento (falta R$ ${faltante.toFixed(2)})`
+                ? `Registrar pagamento (falta R$ ${formatMoeda(faltante)})`
                 : "Registrar pagamento"}
             </button>
           ) : (

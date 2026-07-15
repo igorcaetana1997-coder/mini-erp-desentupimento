@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import { downloadCsv } from "@/lib/exportCsv";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 function mesAtual() {
   const d = new Date();
@@ -24,7 +25,7 @@ function mesAtual() {
 }
 
 function formatMoney(n) {
-  return `R$ ${Number(n || 0).toFixed(2)}`;
+  return `R$ ${formatMoeda(n)}`;
 }
 
 const DIAS_ALERTA_STORAGE_KEY = "visaoGeral.diasAlerta";

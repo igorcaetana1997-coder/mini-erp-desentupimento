@@ -10,6 +10,7 @@ import OrcamentoForm from "@/components/OrcamentoForm";
 import Ticket from "@/components/Ticket";
 import TicketActions from "@/components/TicketActions";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 const ORCAMENTO_STATUS_CLASSES = {
   pendente: "bg-[#E8A33D]/15 text-[#E8A33D]",
@@ -570,7 +571,7 @@ export default function PainelClient() {
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{o.cliente?.name}</p>
                   <p className="text-xs text-[rgb(var(--ink))] truncate">{o.serviceType}</p>
-                  <p className="text-xs text-[rgb(var(--stone))]">R$ {Number(o.value).toFixed(2)}</p>
+                  <p className="text-xs text-[rgb(var(--stone))]">R$ {formatMoeda(o.value)}</p>
                 </div>
                 <span
                   className={`shrink-0 text-[10px] font-bold uppercase px-1.5 py-0.5 ${ORCAMENTO_STATUS_CLASSES[o.status]}`}

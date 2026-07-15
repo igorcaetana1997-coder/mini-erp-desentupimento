@@ -1,6 +1,7 @@
 import { Document, View, Text, Image } from "@react-pdf/renderer";
 import { DocumentoPdfShell, ItemsTable, styles } from "./DocumentoPdfShell";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 export default function ReciboPdfDocument({
   osId,
@@ -16,7 +17,7 @@ export default function ReciboPdfDocument({
   osStamp,
   emitidoEmLabel,
 }) {
-  const valorTexto = value != null ? `R$ ${Number(value).toFixed(2)}` : "—";
+  const valorTexto = value != null ? `R$ ${formatMoeda(value)}` : "—";
 
   return (
     <Document>

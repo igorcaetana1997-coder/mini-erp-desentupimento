@@ -5,6 +5,7 @@ import { Download, Printer, MessageCircle } from "lucide-react";
 import DocumentoCard from "@/components/DocumentoCard";
 import { STATUS as OS_STATUS } from "@/components/Stamp";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { formatMoeda } from "@/lib/formatMoeda";
 import { baixarPdf, imprimirPdf } from "@/lib/gerarPdf";
 
 const PAYMENT_LABELS = {
@@ -46,7 +47,7 @@ export default function ReciboDocumento({
     statusPagamento.status === "pago"
       ? `Total pago · ${PAYMENT_LABELS[paymentMethod] || "não informado"}`
       : statusPagamento.status === "parcial"
-      ? `Pago parcialmente · falta R$ ${statusPagamento.faltante.toFixed(2)}`
+      ? `Pago parcialmente · falta R$ ${formatMoeda(statusPagamento.faltante)}`
       : "Valor total (pendente)";
 
   const montarDocumentoPdf = async () => {
@@ -165,11 +166,11 @@ export default function ReciboDocumento({
                   {serviceType}
                   {materiais && <span className="sub-line">Materiais: {materiais}</span>}
                 </td>
-                <td className="num">{value != null ? `R$ ${Number(value).toFixed(2)}` : "—"}</td>
+                <td className="num">{value != null ? `R$ ${formatMoeda(value)}` : "—"}</td>
               </tr>
               <tr className="totals-row">
                 <td className="label">{totalLabel}</td>
-                <td className="num">{value != null ? `R$ ${Number(value).toFixed(2)}` : "—"}</td>
+                <td className="num">{value != null ? `R$ ${formatMoeda(value)}` : "—"}</td>
               </tr>
             </tbody>
           </table>

@@ -456,6 +456,7 @@ lib/
   notifications.js              stub para WhatsApp/SMS (ver seção 5)
   resizeImage.js                redimensiona fotos no navegador antes do upload
   formatEndereco.js              monta a linha de endereço a partir dos campos estruturados do cliente
+  formatMoeda.js                  formatMoeda(valor) — formata em pt-BR (ponto de milhar, vírgula decimal)
   comissaoTecnico.js             calcularFaixa(faixas, totalFaturado) — regra da faixa de comissão do técnico
   exportCsv.js                   downloadCsv(filename, headers, rows) — exportação client-side, sem lib externa
   paymentStatus.js                getStatusPagamento(os) — deriva pago/parcial/pendente a partir de valorPago

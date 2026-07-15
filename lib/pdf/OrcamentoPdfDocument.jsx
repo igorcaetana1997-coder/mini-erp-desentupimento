@@ -1,9 +1,10 @@
 import { Document, View, Text } from "@react-pdf/renderer";
 import { DocumentoPdfShell, ItemsTable, styles } from "./DocumentoPdfShell";
 import { formatEndereco } from "@/lib/formatEndereco";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel, numero }) {
-  const valorTexto = `R$ ${Number(orcamento.value).toFixed(2)}`;
+  const valorTexto = `R$ ${formatMoeda(orcamento.value)}`;
 
   return (
     <Document>
@@ -39,7 +40,7 @@ export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel,
           descricao={orcamento.serviceType}
           subLinha={orcamento.observacoes || null}
           valor={valorTexto}
-          totalLabel="Valor do orçamento"
+          totalLabel="Valor total do orçamento"
           totalValor={valorTexto}
         />
 

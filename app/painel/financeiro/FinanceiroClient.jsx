@@ -5,6 +5,7 @@ import { Wallet, CheckCircle2, Clock, TrendingDown, Scale, Plus, Trash2, Handsha
 import EmptyState from "@/components/EmptyState";
 import { downloadCsv } from "@/lib/exportCsv";
 import { getStatusPagamento } from "@/lib/paymentStatus";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 const STATUS_LABELS = { pago: "Pago", parcial: "Parcial", pendente: "Pendente" };
 const STATUS_CLASSES = { pago: "text-[#1E7A52]", parcial: "text-[#E8A33D]", pendente: "text-[#A02018]" };
@@ -23,7 +24,7 @@ function todayInputValue() {
 }
 
 function formatMoney(n) {
-  return `R$ ${Number(n || 0).toFixed(2)}`;
+  return `R$ ${formatMoeda(n)}`;
 }
 
 export default function FinanceiroClient() {
