@@ -55,7 +55,7 @@ export const styles = StyleSheet.create({
   fantasia: {
     fontFamily: "Times-Italic",
     fontSize: 8.5,
-    color: "#948C7D",
+    color: "#4A4437",
     marginBottom: 6,
   },
   fiscalRow: {
@@ -67,7 +67,7 @@ export const styles = StyleSheet.create({
     fontSize: 6.5,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    color: "#948C7D",
+    color: "#4A4437",
     width: 52,
     textAlign: "right",
     marginRight: 6,
@@ -93,7 +93,7 @@ export const styles = StyleSheet.create({
   },
   numero: {
     fontSize: 8.5,
-    color: "#948C7D",
+    color: "#4A4437",
     marginBottom: 4,
   },
   servico: {
@@ -123,12 +123,12 @@ export const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 7,
-    color: "#948C7D",
+    color: "#4A4437",
     lineHeight: 1.5,
   },
   footerHash: {
     fontSize: 6.5,
-    color: "#B7AF9E",
+    color: "#8A8272",
   },
   infoGrid: {
     flexDirection: "row",
@@ -144,7 +144,7 @@ export const styles = StyleSheet.create({
     fontSize: 6.5,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    color: "#948C7D",
+    color: "#4A4437",
     marginBottom: 3,
   },
   fieldValue: {
@@ -179,7 +179,7 @@ export const styles = StyleSheet.create({
   td: { fontSize: 9, color: "#221D14", paddingVertical: 8, paddingHorizontal: 8 },
   tdDesc: { flex: 1 },
   tdValor: { width: 90, textAlign: "right", fontFamily: "Helvetica-Bold" },
-  subLine: { fontFamily: "Times-Italic", fontSize: 7.5, color: "#948C7D", marginTop: 3 },
+  subLine: { fontFamily: "Times-Italic", fontSize: 7.5, color: "#4A4437", marginTop: 3 },
   totalRow: {
     flexDirection: "row",
     borderTopWidth: 2,
@@ -206,7 +206,7 @@ export const styles = StyleSheet.create({
   disclaimer: {
     fontFamily: "Times-Italic",
     fontSize: 8,
-    color: "#948C7D",
+    color: "#4A4437",
     lineHeight: 1.5,
     marginTop: 4,
   },
@@ -218,7 +218,7 @@ export const styles = StyleSheet.create({
     fontSize: 6.5,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    color: "#948C7D",
+    color: "#4A4437",
     marginBottom: 6,
   },
   signatureImage: {

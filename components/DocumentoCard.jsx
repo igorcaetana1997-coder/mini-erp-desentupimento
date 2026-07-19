@@ -151,7 +151,7 @@ export default function DocumentoCard({
         .fiscal-table td.fantasia {
           text-align: right;
           font-size: 10px;
-          color: #948c7d;
+          color: #4a4437;
           font-style: italic;
           padding-bottom: 8px;
         }
@@ -161,7 +161,7 @@ export default function DocumentoCard({
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.06em;
-          color: #948c7d;
+          color: #4a4437;
           text-align: right;
           padding-right: 8px;
         }
@@ -187,7 +187,7 @@ export default function DocumentoCard({
         }
         .doc-num {
           font-size: 11.5px;
-          color: #948c7d;
+          color: #4a4437;
           margin: 0 0 6px;
           font-variant-numeric: tabular-nums;
         }
@@ -225,7 +225,7 @@ export default function DocumentoCard({
         }
         .legal-text {
           font-size: 9.5px;
-          color: #948c7d;
+          color: #4a4437;
           line-height: 1.55;
           margin: 0;
         }
@@ -235,7 +235,7 @@ export default function DocumentoCard({
         }
         .doc-hash {
           font-size: 9px;
-          color: #b7af9e;
+          color: #8a8272;
           font-variant-numeric: tabular-nums;
           white-space: nowrap;
           margin: 0;
