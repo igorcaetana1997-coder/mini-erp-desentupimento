@@ -324,7 +324,7 @@ export default function PainelClient() {
             {clients.slice(0, 3).map((c) => (
               <div
                 key={c.id}
-                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors"
+                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors min-h-[68px]"
               >
                 <Link href={`/painel/clientes/${c.id}`} className="min-w-0 flex-1">
                   <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{c.name}</p>
@@ -405,7 +405,7 @@ export default function PainelClient() {
             {tecnicos.slice(0, 3).map((t) => (
               <div
                 key={t.id}
-                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2"
+                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 min-h-[68px]"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{t.name}</p>
@@ -482,7 +482,7 @@ export default function PainelClient() {
             {parceiros.slice(0, 3).map((p) => (
               <div
                 key={p.id}
-                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors"
+                className="bg-[rgb(var(--input-bg)/0.60)] border border-[rgb(var(--border-strong)/0.2)] px-3 py-2 flex items-center justify-between gap-2 hover:bg-[rgb(var(--input-bg))] transition-colors min-h-[68px]"
               >
                 <Link href={`/painel/parceiros/${p.id}`} className="min-w-0 flex-1">
                   <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{p.name}</p>
