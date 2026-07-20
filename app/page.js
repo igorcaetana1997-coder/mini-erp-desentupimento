@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { isGestor } from "@/lib/permissions";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -9,7 +10,7 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  if (session.user.role === "admin") {
+  if (isGestor(session.user.role)) {
     redirect("/painel");
   }
 

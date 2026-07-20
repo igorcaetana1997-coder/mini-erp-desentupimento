@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -27,15 +29,34 @@ export async function PATCH(req, { params }) {
   }
 
   const faixa = await prisma.faixaComissao.update({ where: { id: params.id }, data });
+
+  await registrarAuditoria({
+    session,
+    action: "update",
+    entity: "FaixaComissao",
+    entityId: faixa.id,
+    description: `${session.user.name} editou a faixa de comissão a partir de R$ ${faixa.minValor}`,
+  });
+
   return NextResponse.json(faixa);
 }
 
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
+  const faixa = await prisma.faixaComissao.findUnique({ where: { id: params.id } });
   await prisma.faixaComissao.delete({ where: { id: params.id } });
+
+  await registrarAuditoria({
+    session,
+    action: "delete",
+    entity: "FaixaComissao",
+    entityId: params.id,
+    description: `${session.user.name} excluiu a faixa de comissão a partir de R$ ${faixa?.minValor ?? "?"}`,
+  });
+
   return NextResponse.json({ ok: true });
 }

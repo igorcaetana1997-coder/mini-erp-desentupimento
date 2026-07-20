@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
   cliente: true,
@@ -19,7 +21,7 @@ export async function GET() {
   }
 
   let where = { deletedAt: null, technicianId: session.user.id };
-  if (session.user.role === "admin") where = { deletedAt: null };
+  if (isGestor(session.user.role)) where = { deletedAt: null };
   else if (session.user.role === "parceiro") where = { deletedAt: null, parceiroId: session.user.parceiroId };
 
   const ordens = await prisma.ordemServico.findMany({
@@ -33,7 +35,7 @@ export async function GET() {
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem abrir ordens de serviço" }, { status: 403 });
   }
 
@@ -103,6 +105,14 @@ export async function POST(req) {
       parceriaPercentual: parceiroId ? Number(parceriaPercentual) : null,
     },
     include,
+  });
+
+  await registrarAuditoria({
+    session,
+    action: "create",
+    entity: "OrdemServico",
+    entityId: os.id,
+    description: `${session.user.name} abriu uma OS para ${os.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json(os, { status: 201 });

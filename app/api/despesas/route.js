@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -30,7 +32,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem lançar despesas" }, { status: 403 });
   }
 
@@ -39,6 +41,7 @@ export async function POST(req) {
   const categoria = (body.categoria || "").trim();
   const valor = Number(body.valor);
   const data = body.data ? new Date(body.data) : new Date();
+  const vencimento = body.vencimento ? new Date(body.vencimento) : null;
 
   if (!descricao) {
     return NextResponse.json({ error: "Descrição é obrigatória" }, { status: 400 });
@@ -48,7 +51,15 @@ export async function POST(req) {
   }
 
   const despesa = await prisma.despesa.create({
-    data: { descricao, categoria: categoria || null, valor, data },
+    data: { descricao, categoria: categoria || null, valor, data, vencimento },
+  });
+
+  await registrarAuditoria({
+    session,
+    action: "create",
+    entity: "Despesa",
+    entityId: despesa.id,
+    description: `${session.user.name} lançou a despesa "${despesa.descricao}" (R$ ${despesa.valor})`,
   });
 
   return NextResponse.json(despesa, { status: 201 });

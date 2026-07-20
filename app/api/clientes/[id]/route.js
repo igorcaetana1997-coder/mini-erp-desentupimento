@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -28,7 +30,7 @@ export async function GET(req, { params }) {
 
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -62,6 +64,14 @@ export async function PATCH(req, { params }) {
     data,
   });
 
+  await registrarAuditoria({
+    session,
+    action: "update",
+    entity: "Cliente",
+    entityId: cliente.id,
+    description: `${session.user.name} editou o cliente ${cliente.name}`,
+  });
+
   return NextResponse.json(cliente);
 }
 
@@ -71,7 +81,7 @@ export async function PATCH(req, { params }) {
 // (não deletadas) vinculadas, para não perder histórico de serviço sem querer.
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem excluir clientes" }, { status: 403 });
   }
 
@@ -93,9 +103,23 @@ export async function DELETE(req, { params }) {
 
   if (!cliente.deletedAt) {
     await prisma.cliente.update({ where: { id: params.id }, data: { deletedAt: new Date() } });
+    await registrarAuditoria({
+      session,
+      action: "delete",
+      entity: "Cliente",
+      entityId: cliente.id,
+      description: `${session.user.name} moveu o cliente ${cliente.name} para a lixeira`,
+    });
     return NextResponse.json({ ok: true, lixeira: true });
   }
 
   await prisma.cliente.delete({ where: { id: params.id } });
+  await registrarAuditoria({
+    session,
+    action: "delete",
+    entity: "Cliente",
+    entityId: cliente.id,
+    description: `${session.user.name} excluiu definitivamente o cliente ${cliente.name}`,
+  });
   return NextResponse.json({ ok: true });
 }

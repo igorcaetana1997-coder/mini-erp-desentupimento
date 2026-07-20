@@ -17,22 +17,31 @@ import {
   X,
   Trash2,
   FileText,
+  Landmark,
+  Users,
+  History,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { isGestor } from "@/lib/permissions";
 
-const ADMIN_LINKS = [
+const GESTOR_LINKS = [
   { href: "/painel/visao-geral", label: "Visão Geral", icon: LayoutGrid },
   { href: "/painel", label: "Painel", icon: LayoutDashboard },
   { href: "/painel/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/painel/orcamentos", label: "Orçamentos", icon: FileText },
+  { href: "/painel/contas", label: "Contas", icon: Landmark },
   { href: "/painel/financeiro", label: "Financeiro", icon: Wallet },
   { href: "/painel/lixeira", label: "Lixeira", icon: Trash2 },
+  { href: "/painel/gerentes", label: "Gerentes", icon: Users, adminOnly: true },
+  { href: "/painel/auditoria", label: "Auditoria", icon: History, adminOnly: true },
   { href: "/tecnico", label: "Técnico", icon: Smartphone },
 ];
 
 export default function TopBar({ user }) {
   const pathname = usePathname();
-  const isAdmin = user?.role === "admin";
+  const isGestorUser = isGestor(user?.role);
+  const isAdminReal = user?.role === "admin";
+  const visibleLinks = GESTOR_LINKS.filter((l) => !l.adminOnly || isAdminReal);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const linkClass = (href) =>
@@ -55,21 +64,21 @@ export default function TopBar({ user }) {
             className="h-11 w-auto shrink-0"
           />
           <p className="hidden sm:block text-[10px] text-[#9a9a9a] tracking-wide border-l border-[#9a9a9a]/30 pl-3 truncate">
-            {isAdmin ? "Painel de operações" : `Olá, ${user?.name?.split(" ")[0] || "técnico"}`}
+            {isGestorUser ? "Painel de operações" : `Olá, ${user?.name?.split(" ")[0] || "técnico"}`}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {isGestorUser && (
             <div className="hidden md:flex bg-[#1a1a1a] p-1 gap-1">
-              {ADMIN_LINKS.map(({ href, label, icon: Icon }) => (
+              {visibleLinks.map(({ href, label, icon: Icon }) => (
                 <Link key={href} href={href} className={linkClass(href)}>
                   <Icon size={14} /> {label}
                 </Link>
               ))}
             </div>
           )}
-          {isAdmin && (
+          {isGestorUser && (
             <button
               onClick={() => setMenuOpen((v) => !v)}
               className="md:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#9a9a9a] hover:text-[#C6FE1F] transition-colors"
@@ -96,9 +105,9 @@ export default function TopBar({ user }) {
         </div>
       </div>
 
-      {isAdmin && menuOpen && (
+      {isGestorUser && menuOpen && (
         <div className="md:hidden flex flex-col bg-[#1a1a1a] px-2 pb-2 gap-1">
-          {ADMIN_LINKS.map(({ href, label, icon: Icon }) => (
+          {visibleLinks.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} onClick={() => setMenuOpen(false)} className={linkClass(href)}>
               <Icon size={14} /> {label}
             </Link>

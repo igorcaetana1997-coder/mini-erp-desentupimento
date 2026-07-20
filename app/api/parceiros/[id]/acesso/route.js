@@ -3,11 +3,13 @@ import { getServerSession } from "next-auth/next";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 // Cria o login (User com role "parceiro") pra um parceiro já cadastrado.
 export async function POST(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem criar acesso para parceiros" }, { status: 403 });
   }
 
@@ -58,6 +60,14 @@ export async function POST(req, { params }) {
       parceiroId: parceiro.id,
     },
     select: { id: true, name: true, email: true, username: true },
+  });
+
+  await registrarAuditoria({
+    session,
+    action: "create",
+    entity: "Parceiro",
+    entityId: parceiro.id,
+    description: `${session.user.name} criou acesso de login para o parceiro ${parceiro.name}`,
   });
 
   return NextResponse.json(login, { status: 201 });

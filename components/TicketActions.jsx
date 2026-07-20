@@ -22,6 +22,7 @@ import EditarOsModal from "./EditarOsModal";
 import { resizeImageToDataUrl } from "@/lib/resizeImage";
 import { getStatusPagamento } from "@/lib/paymentStatus";
 import { formatMoeda } from "@/lib/formatMoeda";
+import { isGestor } from "@/lib/permissions";
 
 export default function TicketActions({
   os,
@@ -60,7 +61,7 @@ export default function TicketActions({
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
   const fileInputRef = useRef(null);
 
-  const isAdmin = role === "admin";
+  const isAdmin = isGestor(role);
   // Ações operacionais (avançar/recusar/concluir/materiais/fotos/avaliação) continuam
   // só pra admin ou o técnico dono — parceiro não opera o fluxo do serviço.
   const canOperate = isAdmin || (isOwner && role === "tecnico");

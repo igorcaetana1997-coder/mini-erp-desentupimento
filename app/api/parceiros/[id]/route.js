@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -29,7 +31,7 @@ export async function GET(req, { params }) {
 
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -46,6 +48,15 @@ export async function PATCH(req, { params }) {
   }
 
   const parceiro = await prisma.parceiro.update({ where: { id: params.id }, data });
+
+  await registrarAuditoria({
+    session,
+    action: "update",
+    entity: "Parceiro",
+    entityId: parceiro.id,
+    description: `${session.user.name} editou o parceiro ${parceiro.name}`,
+  });
+
   return NextResponse.json(parceiro);
 }
 
@@ -53,7 +64,7 @@ export async function PATCH(req, { params }) {
 // (mesma proteção usada em app/api/clientes/[id]/route.js).
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem excluir parceiros" }, { status: 403 });
   }
 
@@ -74,5 +85,14 @@ export async function DELETE(req, { params }) {
   }
 
   await prisma.parceiro.delete({ where: { id: params.id } });
+
+  await registrarAuditoria({
+    session,
+    action: "delete",
+    entity: "Parceiro",
+    entityId: parceiro.id,
+    description: `${session.user.name} excluiu o parceiro ${parceiro.name}`,
+  });
+
   return NextResponse.json({ ok: true });
 }

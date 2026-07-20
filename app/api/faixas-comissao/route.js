@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -15,7 +17,7 @@ export async function GET() {
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem configurar faixas de comissão" }, { status: 403 });
   }
 
@@ -31,5 +33,14 @@ export async function POST(req) {
   }
 
   const faixa = await prisma.faixaComissao.create({ data: { minValor, percentual } });
+
+  await registrarAuditoria({
+    session,
+    action: "create",
+    entity: "FaixaComissao",
+    entityId: faixa.id,
+    description: `${session.user.name} criou faixa de comissão a partir de R$ ${minValor} (${percentual}%)`,
+  });
+
   return NextResponse.json(faixa, { status: 201 });
 }

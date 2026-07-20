@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyClienteStatusChange } from "@/lib/notifications";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
   cliente: true,
@@ -26,9 +28,9 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Ordem de serviço não encontrada" }, { status: 404 });
   }
 
-  const isAdmin = session.user.role === "admin";
+  const isGestorUser = isGestor(session.user.role);
   const isOwner = os.technicianId === session.user.id;
-  if (!isAdmin && !isOwner) {
+  if (!isGestorUser && !isOwner) {
     return NextResponse.json({ error: "Você não tem acesso a esta ordem de serviço" }, { status: 403 });
   }
 
@@ -71,6 +73,14 @@ export async function PATCH(req, { params }) {
   });
 
   notifyClienteStatusChange("os_concluida", { cliente: os.cliente, os: updated });
+
+  await registrarAuditoria({
+    session,
+    action: "status",
+    entity: "OrdemServico",
+    entityId: updated.id,
+    description: `${session.user.name} concluiu a OS de ${os.cliente?.name || "cliente"}`,
+  });
 
   return NextResponse.json(updated);
 }

@@ -2,19 +2,19 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
-// Edição de técnico — admin ou gerente.
+// Edição de gerente — só admin.
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || !isGestor(session.user.role)) {
+  if (!session || !isAdmin(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
-  const tecnico = await prisma.user.findUnique({ where: { id: params.id } });
-  if (!tecnico || tecnico.role !== "tecnico") {
-    return NextResponse.json({ error: "Técnico não encontrado" }, { status: 404 });
+  const gerente = await prisma.user.findUnique({ where: { id: params.id } });
+  if (!gerente || gerente.role !== "gerente") {
+    return NextResponse.json({ error: "Gerente não encontrado" }, { status: 404 });
   }
 
   const body = await req.json();
@@ -64,25 +64,24 @@ export async function PATCH(req, { params }) {
   await registrarAuditoria({
     session,
     action: "update",
-    entity: "Tecnico",
+    entity: "Gerente",
     entityId: atualizado.id,
-    description: `${session.user.name} editou o técnico ${atualizado.name}`,
+    description: `${session.user.name} editou o gerente ${atualizado.name}`,
   });
 
   return NextResponse.json(atualizado);
 }
 
-// Exclusão de técnico — admin ou gerente. As OS já atribuídas a ele ficam sem
-// técnico designado (FK technicianId é ON DELETE SET NULL), não são apagadas.
+// Exclusão de gerente — só admin.
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || !isGestor(session.user.role)) {
-    return NextResponse.json({ error: "Apenas administradores podem excluir técnicos" }, { status: 403 });
+  if (!session || !isAdmin(session.user.role)) {
+    return NextResponse.json({ error: "Apenas administradores podem excluir gerentes" }, { status: 403 });
   }
 
-  const tecnico = await prisma.user.findUnique({ where: { id: params.id } });
-  if (!tecnico || tecnico.role !== "tecnico") {
-    return NextResponse.json({ error: "Técnico não encontrado" }, { status: 404 });
+  const gerente = await prisma.user.findUnique({ where: { id: params.id } });
+  if (!gerente || gerente.role !== "gerente") {
+    return NextResponse.json({ error: "Gerente não encontrado" }, { status: 404 });
   }
 
   await prisma.user.delete({ where: { id: params.id } });
@@ -90,9 +89,9 @@ export async function DELETE(req, { params }) {
   await registrarAuditoria({
     session,
     action: "delete",
-    entity: "Tecnico",
-    entityId: tecnico.id,
-    description: `${session.user.name} excluiu o técnico ${tecnico.name}`,
+    entity: "Gerente",
+    entityId: gerente.id,
+    description: `${session.user.name} excluiu o gerente ${gerente.name}`,
   });
 
   return NextResponse.json({ ok: true });

@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
 
 async function checkAccess(session, osId) {
   const os = await prisma.ordemServico.findUnique({ where: { id: osId } });
   if (!os) return { os: null };
-  const isAdmin = session.user.role === "admin";
+  const isGestorUser = isGestor(session.user.role);
   const isOwner = os.technicianId === session.user.id;
-  return { os, allowed: isAdmin || isOwner };
+  return { os, allowed: isGestorUser || isOwner };
 }
 
 export async function DELETE(req, { params }) {

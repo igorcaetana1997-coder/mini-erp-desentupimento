@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyClienteStatusChange } from "@/lib/notifications";
+import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
   cliente: true,
@@ -45,6 +46,14 @@ export async function PATCH(req, { params }) {
   });
 
   notifyClienteStatusChange("os_recusada", { cliente: os.cliente, os: updated });
+
+  await registrarAuditoria({
+    session,
+    action: "status",
+    entity: "OrdemServico",
+    entityId: updated.id,
+    description: `${session.user.name} recusou a OS de ${os.cliente?.name || "cliente"}`,
+  });
 
   return NextResponse.json(updated);
 }

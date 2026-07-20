@@ -1,8 +1,9 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import { isGestor } from "@/lib/permissions";
 
 function homeFor(role) {
-  if (role === "admin") return "/painel";
+  if (role === "admin" || role === "gerente") return "/painel";
   if (role === "parceiro") return "/parceiro";
   return "/tecnico";
 }
@@ -15,7 +16,7 @@ export default withAuth(
 
     // Cada papel só acessa a própria área — /ordens/:path* é liberado pra qualquer
     // papel logado (posse é validada na própria página do recibo).
-    if (path.startsWith("/painel") && role !== "admin") {
+    if (path.startsWith("/painel") && !isGestor(role)) {
       return NextResponse.redirect(new URL(homeFor(role), req.url));
     }
     if (path.startsWith("/tecnico") && role !== "tecnico" && role !== "admin") {

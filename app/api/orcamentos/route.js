@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
   cliente: true,
@@ -10,7 +12,7 @@ const include = {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
@@ -24,7 +26,7 @@ export async function GET() {
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem criar orçamentos" }, { status: 403 });
   }
 
@@ -54,6 +56,14 @@ export async function POST(req) {
       observacoes: observacoes?.trim() || null,
     },
     include,
+  });
+
+  await registrarAuditoria({
+    session,
+    action: "create",
+    entity: "Orcamento",
+    entityId: orcamento.id,
+    description: `${session.user.name} criou orçamento para ${orcamento.cliente?.name || "cliente"} (R$ ${orcamento.value})`,
   });
 
   return NextResponse.json(orcamento, { status: 201 });

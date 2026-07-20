@@ -4,10 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calcularFaixa } from "@/lib/comissaoTecnico";
 import { getStatusPagamento } from "@/lib/paymentStatus";
+import { isGestor } from "@/lib/permissions";
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 

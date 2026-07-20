@@ -14,7 +14,7 @@ model User {
   email      String    @unique
   username   String?   @unique // opcional: login alternativo ao e-mail, definido na criação do usuário
   password   String
-  role       String // "admin" | "tecnico" | "parceiro"
+  role       String // "admin" | "gerente" | "tecnico" | "parceiro"
   phone      String?
   createdAt  DateTime  @default(now())
   parceiroId String? // só usado quando role === "parceiro": qual Parceiro esse login representa
@@ -22,6 +22,23 @@ model User {
 
   ordens      OrdemServico[]
   resetTokens PasswordResetToken[]
+  auditLogs   AuditLog[]
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName    String
+  userRole    String
+  action      String // "create" | "update" | "delete" | "status"
+  entity      String // "Cliente" | "Tecnico" | "Parceiro" | "OrdemServico" | "Orcamento" | "Despesa" | "FaixaComissao" | "Gerente"
+  entityId    String?
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity])
 }
 
 model PasswordResetToken {
@@ -127,12 +144,15 @@ model FotoServico {
 }
 
 model Despesa {
-  id        String   @id @default(cuid())
-  descricao String
-  categoria String? // "Material" | "Combustível" | "Manutenção" | "Salário" | "Outro"
-  valor     Float
-  data      DateTime
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  descricao  String
+  categoria  String? // "Material" | "Combustível" | "Manutenção" | "Salário" | "Outro"
+  valor      Float
+  data       DateTime
+  vencimento DateTime? // conta a pagar: quando vence (opcional, despesas antigas não têm)
+  status     String    @default("pendente") // "pendente" | "pago"
+  pagoEm     DateTime? // quando foi marcada como paga
+  createdAt  DateTime  @default(now())
 }
 
 model Parceiro {

@@ -3,27 +3,29 @@ import { getServerSession } from "next-auth/next";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
+// Gestão de gerentes é exclusiva do admin real — gerente não pode criar
+// nem ver outros gerentes (evita autopromoção/escalada de privilégio).
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || !isGestor(session.user.role)) {
+  if (!session || !isAdmin(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
-  const tecnicos = await prisma.user.findMany({
-    where: { role: "tecnico" },
+  const gerentes = await prisma.user.findMany({
+    where: { role: "gerente" },
     select: { id: true, name: true, email: true, username: true, phone: true },
     orderBy: { name: "asc" },
   });
-  return NextResponse.json(tecnicos);
+  return NextResponse.json(gerentes);
 }
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
-  if (!session || !isGestor(session.user.role)) {
-    return NextResponse.json({ error: "Apenas administradores podem cadastrar técnicos" }, { status: 403 });
+  if (!session || !isAdmin(session.user.role)) {
+    return NextResponse.json({ error: "Apenas administradores podem cadastrar gerentes" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -58,18 +60,18 @@ export async function POST(req) {
   }
 
   const hashed = await bcrypt.hash(password, 10);
-  const tecnico = await prisma.user.create({
-    data: { name, email, username: username || null, password: hashed, phone: phone || null, role: "tecnico" },
+  const gerente = await prisma.user.create({
+    data: { name, email, username: username || null, password: hashed, phone: phone || null, role: "gerente" },
     select: { id: true, name: true, email: true, username: true, phone: true },
   });
 
   await registrarAuditoria({
     session,
     action: "create",
-    entity: "Tecnico",
-    entityId: tecnico.id,
-    description: `${session.user.name} cadastrou o técnico ${tecnico.name}`,
+    entity: "Gerente",
+    entityId: gerente.id,
+    description: `${session.user.name} cadastrou o gerente ${gerente.name}`,
   });
 
-  return NextResponse.json(tecnico, { status: 201 });
+  return NextResponse.json(gerente, { status: 201 });
 }

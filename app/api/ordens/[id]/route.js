@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isGestor } from "@/lib/permissions";
+import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
   cliente: true,
@@ -29,10 +31,10 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Ordem de serviço não encontrada" }, { status: 404 });
   }
 
-  const isAdmin = session.user.role === "admin";
+  const isGestorUser = isGestor(session.user.role);
   const isOwnerTecnico = session.user.role === "tecnico" && os.technicianId === session.user.id;
   const isOwnerParceiro = session.user.role === "parceiro" && os.parceiroId === session.user.parceiroId;
-  if (!isAdmin && !isOwnerTecnico && !isOwnerParceiro) {
+  if (!isGestorUser && !isOwnerTecnico && !isOwnerParceiro) {
     return NextResponse.json({ error: "Você não tem acesso a esta ordem de serviço" }, { status: 403 });
   }
 
@@ -40,7 +42,7 @@ export async function PATCH(req, { params }) {
   const data = {};
 
   // Campos que técnico dono e admin podem editar
-  if (isAdmin || isOwnerTecnico) {
+  if (isGestorUser || isOwnerTecnico) {
     if (typeof body.materiais === "string") data.materiais = body.materiais.trim() || null;
     if (body.avaliacaoNota !== undefined) {
       if (body.avaliacaoNota === null || body.avaliacaoNota === "") {
@@ -57,7 +59,7 @@ export async function PATCH(req, { params }) {
 
   // Valor do serviço: técnico dono ou parceiro dono podem ajustar, só
   // enquanto a OS ainda não foi concluída (nem recusada).
-  if (!isAdmin && (isOwnerTecnico || isOwnerParceiro) && body.value !== undefined) {
+  if (!isGestorUser && (isOwnerTecnico || isOwnerParceiro) && body.value !== undefined) {
     if (!["aberta", "andamento"].includes(os.status)) {
       return NextResponse.json(
         { error: "Só é possível editar o valor antes da conclusão da OS" },
@@ -71,11 +73,18 @@ export async function PATCH(req, { params }) {
     data.value = novoValor;
   }
 
-  if (!isAdmin) {
+  if (!isGestorUser) {
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: "Nenhum campo válido para atualizar" }, { status: 400 });
     }
     const updated = await prisma.ordemServico.update({ where: { id: params.id }, data, include });
+    await registrarAuditoria({
+      session,
+      action: "update",
+      entity: "OrdemServico",
+      entityId: updated.id,
+      description: `${session.user.name} editou a OS de ${updated.cliente?.name || "cliente"}`,
+    });
     return NextResponse.json(updated);
   }
 
@@ -158,6 +167,17 @@ export async function PATCH(req, { params }) {
   }
 
   const updated = await prisma.ordemServico.update({ where: { id: params.id }, data, include });
+
+  await registrarAuditoria({
+    session,
+    action: data.status ? "status" : "update",
+    entity: "OrdemServico",
+    entityId: updated.id,
+    description: data.status
+      ? `${session.user.name} reabriu a OS de ${updated.cliente?.name || "cliente"}`
+      : `${session.user.name} editou a OS de ${updated.cliente?.name || "cliente"}`,
+  });
+
   return NextResponse.json(updated);
 }
 
@@ -166,22 +186,37 @@ export async function PATCH(req, { params }) {
 // apaga de vez, removendo as fotos anexadas antes.
 export async function DELETE(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores podem excluir ordens de serviço" }, { status: 403 });
   }
 
-  const os = await prisma.ordemServico.findUnique({ where: { id: params.id } });
+  const os = await prisma.ordemServico.findUnique({ where: { id: params.id }, include: { cliente: true } });
   if (!os) {
     return NextResponse.json({ error: "Ordem de serviço não encontrada" }, { status: 404 });
   }
 
   if (!os.deletedAt) {
     await prisma.ordemServico.update({ where: { id: params.id }, data: { deletedAt: new Date() } });
+    await registrarAuditoria({
+      session,
+      action: "delete",
+      entity: "OrdemServico",
+      entityId: os.id,
+      description: `${session.user.name} moveu a OS de ${os.cliente?.name || "cliente"} para a lixeira`,
+    });
     return NextResponse.json({ ok: true, lixeira: true });
   }
 
   await prisma.fotoServico.deleteMany({ where: { ordemServicoId: params.id } });
   await prisma.ordemServico.delete({ where: { id: params.id } });
+
+  await registrarAuditoria({
+    session,
+    action: "delete",
+    entity: "OrdemServico",
+    entityId: os.id,
+    description: `${session.user.name} excluiu definitivamente a OS de ${os.cliente?.name || "cliente"}`,
+  });
 
   return NextResponse.json({ ok: true });
 }
