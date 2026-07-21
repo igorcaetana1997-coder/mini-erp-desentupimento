@@ -3,12 +3,18 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
+  }
+
+  const anterior = await prisma.faixaComissao.findUnique({ where: { id: params.id } });
+  if (!anterior) {
+    return NextResponse.json({ error: "Faixa de comissão não encontrada" }, { status: 404 });
   }
 
   const body = await req.json();
@@ -30,12 +36,19 @@ export async function PATCH(req, { params }) {
 
   const faixa = await prisma.faixaComissao.update({ where: { id: params.id }, data });
 
+  const mudancas = descreverAlteracoes(anterior, data, {
+    minValor: { label: "o valor mínimo", format: (v) => `R$ ${formatMoeda(v)}` },
+    percentual: { label: "o percentual", format: (v) => `${v}%` },
+  });
   await registrarAuditoria({
     session,
     action: "update",
     entity: "FaixaComissao",
     entityId: faixa.id,
-    description: `${session.user.name} (${roleLabel(session.user.role)}) editou a faixa de comissão a partir de R$ ${faixa.minValor}`,
+    description:
+      mudancas.length > 0
+        ? `${session.user.name} (${roleLabel(session.user.role)}) alterou ${mudancas.join("; ")} da faixa de comissão`
+        : `${session.user.name} (${roleLabel(session.user.role)}) editou a faixa de comissão a partir de R$ ${faixa.minValor}`,
   });
 
   return NextResponse.json(faixa);

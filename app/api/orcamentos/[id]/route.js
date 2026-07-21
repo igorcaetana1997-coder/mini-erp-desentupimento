@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 const include = {
   cliente: true,
@@ -108,12 +109,21 @@ export async function PATCH(req, { params }) {
 
   const atualizado = await prisma.orcamento.update({ where: { id: params.id }, data, include });
 
+  const mudancas = descreverAlteracoes(orcamento, data, {
+    value: { label: "o valor", format: (v) => `R$ ${formatMoeda(v)}` },
+    serviceType: { label: "o tipo de serviço" },
+    validoAte: { label: "a validade", format: (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "sem validade") },
+    observacoes: { label: "as observações" },
+  });
   await registrarAuditoria({
     session,
     action: "update",
     entity: "Orcamento",
     entityId: atualizado.id,
-    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o orçamento de ${atualizado.cliente?.name || "cliente"}`,
+    description:
+      mudancas.length > 0
+        ? `${session.user.name} (${roleLabel(session.user.role)}) alterou ${mudancas.join("; ")} do orçamento de ${atualizado.cliente?.name || "cliente"}`
+        : `${session.user.name} (${roleLabel(session.user.role)}) editou o orçamento de ${atualizado.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json(atualizado);

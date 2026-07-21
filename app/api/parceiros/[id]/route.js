@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions);
@@ -35,6 +35,11 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
   }
 
+  const anterior = await prisma.parceiro.findUnique({ where: { id: params.id } });
+  if (!anterior) {
+    return NextResponse.json({ error: "Parceiro não encontrado" }, { status: 404 });
+  }
+
   const body = await req.json();
   const data = {};
   if (typeof body.name === "string") data.name = body.name.trim();
@@ -49,12 +54,22 @@ export async function PATCH(req, { params }) {
 
   const parceiro = await prisma.parceiro.update({ where: { id: params.id }, data });
 
+  const mudancas = descreverAlteracoes(anterior, data, {
+    name: { label: "o nome" },
+    phone: { label: "o telefone" },
+    email: { label: "o e-mail" },
+    documento: { label: "o documento" },
+    observacoes: { label: "as observações" },
+  });
   await registrarAuditoria({
     session,
     action: "update",
     entity: "Parceiro",
     entityId: parceiro.id,
-    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o parceiro ${parceiro.name}`,
+    description:
+      mudancas.length > 0
+        ? `${session.user.name} (${roleLabel(session.user.role)}) alterou ${mudancas.join("; ")} do parceiro ${parceiro.name}`
+        : `${session.user.name} (${roleLabel(session.user.role)}) editou o parceiro ${parceiro.name}`,
   });
 
   return NextResponse.json(parceiro);

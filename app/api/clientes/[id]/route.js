@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 
 export async function GET(req, { params }) {
   const session = await getServerSession(authOptions);
@@ -32,6 +32,11 @@ export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session || !isGestor(session.user.role)) {
     return NextResponse.json({ error: "Apenas administradores" }, { status: 403 });
+  }
+
+  const anterior = await prisma.cliente.findUnique({ where: { id: params.id } });
+  if (!anterior) {
+    return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
   }
 
   const body = await req.json();
@@ -64,12 +69,27 @@ export async function PATCH(req, { params }) {
     data,
   });
 
+  const mudancas = descreverAlteracoes(anterior, data, {
+    name: { label: "o nome" },
+    phone: { label: "o telefone" },
+    email: { label: "o e-mail" },
+    documento: { label: "o documento" },
+    observacoes: { label: "as observações" },
+  });
+  const enderecoMudou = ["cep", "logradouro", "numero", "complemento", "bairro", "cidade", "uf"].some(
+    (campo) => data[campo] !== undefined && data[campo] !== anterior[campo]
+  );
+  if (enderecoMudou) mudancas.push("o endereço");
+
   await registrarAuditoria({
     session,
     action: "update",
     entity: "Cliente",
     entityId: cliente.id,
-    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o cliente ${cliente.name}`,
+    description:
+      mudancas.length > 0
+        ? `${session.user.name} (${roleLabel(session.user.role)}) alterou ${mudancas.join("; ")} do cliente ${cliente.name}`
+        : `${session.user.name} (${roleLabel(session.user.role)}) editou o cliente ${cliente.name}`,
   });
 
   return NextResponse.json(cliente);

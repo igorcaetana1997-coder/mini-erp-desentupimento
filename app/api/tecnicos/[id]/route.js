@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 
 // Edição de técnico — admin ou gerente.
 export async function PATCH(req, { params }) {
@@ -61,12 +61,21 @@ export async function PATCH(req, { params }) {
     select: { id: true, name: true, email: true, username: true, phone: true },
   });
 
+  const mudancas = descreverAlteracoes(tecnico, data, {
+    name: { label: "o nome" },
+    phone: { label: "o telefone" },
+    email: { label: "o e-mail" },
+    username: { label: "o usuário" },
+  });
   await registrarAuditoria({
     session,
     action: "update",
     entity: "Tecnico",
     entityId: atualizado.id,
-    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o técnico ${atualizado.name}`,
+    description:
+      mudancas.length > 0
+        ? `${session.user.name} (${roleLabel(session.user.role)}) alterou ${mudancas.join("; ")} do técnico ${atualizado.name}`
+        : `${session.user.name} (${roleLabel(session.user.role)}) editou o técnico ${atualizado.name}`,
   });
 
   return NextResponse.json(atualizado);
