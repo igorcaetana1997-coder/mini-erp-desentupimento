@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 // Cria o login (User com role "parceiro") pra um parceiro já cadastrado.
@@ -67,7 +67,7 @@ export async function POST(req, { params }) {
     action: "create",
     entity: "Parceiro",
     entityId: parceiro.id,
-    description: `${session.user.name} criou acesso de login para o parceiro ${parceiro.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) criou acesso de login para o parceiro ${parceiro.name}`,
   });
 
   return NextResponse.json(login, { status: 201 });

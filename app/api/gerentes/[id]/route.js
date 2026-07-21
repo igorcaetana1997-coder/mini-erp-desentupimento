@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdmin } from "@/lib/permissions";
+import { isAdmin, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 // Edição de gerente — só admin.
@@ -66,7 +66,7 @@ export async function PATCH(req, { params }) {
     action: "update",
     entity: "Gerente",
     entityId: atualizado.id,
-    description: `${session.user.name} editou o gerente ${atualizado.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o gerente ${atualizado.name}`,
   });
 
   return NextResponse.json(atualizado);
@@ -91,7 +91,7 @@ export async function DELETE(req, { params }) {
     action: "delete",
     entity: "Gerente",
     entityId: gerente.id,
-    description: `${session.user.name} excluiu o gerente ${gerente.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) excluiu o gerente ${gerente.name}`,
   });
 
   return NextResponse.json({ ok: true });

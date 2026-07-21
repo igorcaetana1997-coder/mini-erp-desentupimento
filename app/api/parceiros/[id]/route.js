@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET(req, { params }) {
@@ -54,7 +54,7 @@ export async function PATCH(req, { params }) {
     action: "update",
     entity: "Parceiro",
     entityId: parceiro.id,
-    description: `${session.user.name} editou o parceiro ${parceiro.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o parceiro ${parceiro.name}`,
   });
 
   return NextResponse.json(parceiro);
@@ -91,7 +91,7 @@ export async function DELETE(req, { params }) {
     action: "delete",
     entity: "Parceiro",
     entityId: parceiro.id,
-    description: `${session.user.name} excluiu o parceiro ${parceiro.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) excluiu o parceiro ${parceiro.name}`,
   });
 
   return NextResponse.json({ ok: true });

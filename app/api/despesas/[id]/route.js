@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { isGestor, roleLabel } from "@/lib/permissions";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 // Edição da despesa/conta a pagar, incluindo marcar/desmarcar como paga.
 export async function PATCH(req, { params }) {
@@ -49,17 +50,38 @@ export async function PATCH(req, { params }) {
   }
 
   const atualizada = await prisma.despesa.update({ where: { id: params.id }, data });
+  const quem = `${session.user.name} (${roleLabel(session.user.role)})`;
 
-  await registrarAuditoria({
-    session,
-    action: body.status !== undefined && Object.keys(data).length === 2 ? "status" : "update",
-    entity: "Despesa",
-    entityId: atualizada.id,
-    description:
-      body.status === "pago"
-        ? `${session.user.name} marcou a despesa "${atualizada.descricao}" como paga`
-        : `${session.user.name} editou a despesa "${atualizada.descricao}"`,
-  });
+  if (body.status !== undefined && Object.keys(data).length === 2) {
+    // Só mudou status/pagoEm — mensagem dedicada de pago/pendente.
+    await registrarAuditoria({
+      session,
+      action: "status",
+      entity: "Despesa",
+      entityId: atualizada.id,
+      description:
+        body.status === "pago"
+          ? `${quem} marcou a despesa "${atualizada.descricao}" como paga`
+          : `${quem} marcou a despesa "${atualizada.descricao}" como pendente`,
+    });
+  } else {
+    const mudancas = descreverAlteracoes(despesa, data, {
+      valor: { label: "o valor", format: (v) => `R$ ${formatMoeda(v)}` },
+      descricao: { label: "a descrição" },
+      categoria: { label: "a categoria" },
+      vencimento: { label: "o vencimento", format: (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "sem vencimento") },
+    });
+    await registrarAuditoria({
+      session,
+      action: "update",
+      entity: "Despesa",
+      entityId: atualizada.id,
+      description:
+        mudancas.length > 0
+          ? `${quem} alterou ${mudancas.join("; ")} da despesa "${atualizada.descricao}"`
+          : `${quem} editou a despesa "${atualizada.descricao}"`,
+    });
+  }
 
   return NextResponse.json(atualizada);
 }
@@ -82,7 +104,7 @@ export async function DELETE(req, { params }) {
     action: "delete",
     entity: "Despesa",
     entityId: despesa.id,
-    description: `${session.user.name} excluiu a despesa "${despesa.descricao}"`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) excluiu a despesa "${despesa.descricao}"`,
   });
 
   return NextResponse.json({ ok: true });

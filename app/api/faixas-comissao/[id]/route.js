@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 export async function PATCH(req, { params }) {
@@ -35,7 +35,7 @@ export async function PATCH(req, { params }) {
     action: "update",
     entity: "FaixaComissao",
     entityId: faixa.id,
-    description: `${session.user.name} editou a faixa de comissão a partir de R$ ${faixa.minValor}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) editou a faixa de comissão a partir de R$ ${faixa.minValor}`,
   });
 
   return NextResponse.json(faixa);
@@ -55,7 +55,7 @@ export async function DELETE(req, { params }) {
     action: "delete",
     entity: "FaixaComissao",
     entityId: params.id,
-    description: `${session.user.name} excluiu a faixa de comissão a partir de R$ ${faixa?.minValor ?? "?"}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) excluiu a faixa de comissão a partir de R$ ${faixa?.minValor ?? "?"}`,
   });
 
   return NextResponse.json({ ok: true });

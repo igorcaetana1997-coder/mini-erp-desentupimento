@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
-import { registrarAuditoria } from "@/lib/audit";
+import { isGestor, roleLabel } from "@/lib/permissions";
+import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
+import { formatMoeda } from "@/lib/formatMoeda";
 
 const include = {
   cliente: true,
@@ -78,12 +79,20 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Nenhum campo válido para atualizar" }, { status: 400 });
     }
     const updated = await prisma.ordemServico.update({ where: { id: params.id }, data, include });
+    const mudancas = descreverAlteracoes(os, data, {
+      value: { label: "o valor do serviço", format: (v) => `R$ ${formatMoeda(v)}` },
+      materiais: { label: "os materiais utilizados" },
+      avaliacaoNota: { label: "a avaliação" },
+    });
     await registrarAuditoria({
       session,
       action: "update",
       entity: "OrdemServico",
       entityId: updated.id,
-      description: `${session.user.name} editou a OS de ${updated.cliente?.name || "cliente"}`,
+      description:
+        mudancas.length > 0
+          ? `${session.user.name} (${roleLabel(session.user.role)}) alterou ${mudancas.join("; ")} da OS de ${updated.cliente?.name || "cliente"}`
+          : `${session.user.name} (${roleLabel(session.user.role)}) editou a OS de ${updated.cliente?.name || "cliente"}`,
     });
     return NextResponse.json(updated);
   }
@@ -167,16 +176,40 @@ export async function PATCH(req, { params }) {
   }
 
   const updated = await prisma.ordemServico.update({ where: { id: params.id }, data, include });
+  const quem = `${session.user.name} (${roleLabel(session.user.role)})`;
 
-  await registrarAuditoria({
-    session,
-    action: data.status ? "status" : "update",
-    entity: "OrdemServico",
-    entityId: updated.id,
-    description: data.status
-      ? `${session.user.name} reabriu a OS de ${updated.cliente?.name || "cliente"}`
-      : `${session.user.name} editou a OS de ${updated.cliente?.name || "cliente"}`,
-  });
+  if (data.status) {
+    await registrarAuditoria({
+      session,
+      action: "status",
+      entity: "OrdemServico",
+      entityId: updated.id,
+      description: `${quem} reabriu a OS de ${updated.cliente?.name || "cliente"}`,
+    });
+  } else {
+    const mudancas = descreverAlteracoes(os, data, {
+      value: { label: "o valor do serviço", format: (v) => `R$ ${formatMoeda(v)}` },
+      valorPago: { label: "o valor pago", format: (v) => `R$ ${formatMoeda(v)}` },
+      dueDate: { label: "o vencimento", format: (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "sem vencimento") },
+      paymentMethod: { label: "a forma de pagamento", format: (v) => v || "—" },
+      serviceType: { label: "o tipo de serviço" },
+      scheduledAt: { label: "a data agendada", format: (v) => new Date(v).toLocaleString("pt-BR") },
+      urgent: { label: "a urgência", format: (v) => (v ? "urgente" : "normal") },
+    });
+    if (data.technicianId !== undefined) {
+      mudancas.push("o técnico responsável");
+    }
+    await registrarAuditoria({
+      session,
+      action: "update",
+      entity: "OrdemServico",
+      entityId: updated.id,
+      description:
+        mudancas.length > 0
+          ? `${quem} alterou ${mudancas.join("; ")} da OS de ${updated.cliente?.name || "cliente"}`
+          : `${quem} editou a OS de ${updated.cliente?.name || "cliente"}`,
+    });
+  }
 
   return NextResponse.json(updated);
 }
@@ -202,7 +235,7 @@ export async function DELETE(req, { params }) {
       action: "delete",
       entity: "OrdemServico",
       entityId: os.id,
-      description: `${session.user.name} moveu a OS de ${os.cliente?.name || "cliente"} para a lixeira`,
+      description: `${session.user.name} (${roleLabel(session.user.role)}) moveu a OS de ${os.cliente?.name || "cliente"} para a lixeira`,
     });
     return NextResponse.json({ ok: true, lixeira: true });
   }
@@ -215,7 +248,7 @@ export async function DELETE(req, { params }) {
     action: "delete",
     entity: "OrdemServico",
     entityId: os.id,
-    description: `${session.user.name} excluiu definitivamente a OS de ${os.cliente?.name || "cliente"}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) excluiu definitivamente a OS de ${os.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json({ ok: true });

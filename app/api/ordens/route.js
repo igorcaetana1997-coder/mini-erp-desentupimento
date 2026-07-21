@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
@@ -112,7 +112,7 @@ export async function POST(req) {
     action: "create",
     entity: "OrdemServico",
     entityId: os.id,
-    description: `${session.user.name} abriu uma OS para ${os.cliente?.name || "cliente"}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) abriu uma OS para ${os.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json(os, { status: 201 });

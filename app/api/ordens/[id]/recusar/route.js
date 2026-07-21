@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyClienteStatusChange } from "@/lib/notifications";
 import { registrarAuditoria } from "@/lib/audit";
+import { roleLabel } from "@/lib/permissions";
 
 const include = {
   cliente: true,
@@ -52,7 +53,7 @@ export async function PATCH(req, { params }) {
     action: "status",
     entity: "OrdemServico",
     entityId: updated.id,
-    description: `${session.user.name} recusou a OS de ${os.cliente?.name || "cliente"}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) recusou a OS de ${os.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json(updated);

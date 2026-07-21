@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET() {
@@ -68,7 +68,7 @@ export async function POST(req) {
     action: "create",
     entity: "Tecnico",
     entityId: tecnico.id,
-    description: `${session.user.name} cadastrou o técnico ${tecnico.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) cadastrou o técnico ${tecnico.name}`,
   });
 
   return NextResponse.json(tecnico, { status: 201 });

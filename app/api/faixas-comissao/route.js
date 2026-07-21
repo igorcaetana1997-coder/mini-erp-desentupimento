@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 export async function GET() {
@@ -39,7 +39,7 @@ export async function POST(req) {
     action: "create",
     entity: "FaixaComissao",
     entityId: faixa.id,
-    description: `${session.user.name} criou faixa de comissão a partir de R$ ${minValor} (${percentual}%)`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) criou faixa de comissão a partir de R$ ${minValor} (${percentual}%)`,
   });
 
   return NextResponse.json(faixa, { status: 201 });

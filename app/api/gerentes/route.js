@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdmin } from "@/lib/permissions";
+import { isAdmin, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 // Gestão de gerentes é exclusiva do admin real — gerente não pode criar
@@ -70,7 +70,7 @@ export async function POST(req) {
     action: "create",
     entity: "Gerente",
     entityId: gerente.id,
-    description: `${session.user.name} cadastrou o gerente ${gerente.name}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) cadastrou o gerente ${gerente.name}`,
   });
 
   return NextResponse.json(gerente, { status: 201 });

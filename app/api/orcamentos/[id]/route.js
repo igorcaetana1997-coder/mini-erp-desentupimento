@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
@@ -66,7 +66,7 @@ export async function PATCH(req, { params }) {
         action: "status",
         entity: "Orcamento",
         entityId: orcamento.id,
-        description: `${session.user.name} aprovou o orçamento de ${atualizado.cliente?.name || "cliente"} e gerou a OS`,
+        description: `${session.user.name} (${roleLabel(session.user.role)}) aprovou o orçamento de ${atualizado.cliente?.name || "cliente"} e gerou a OS`,
       });
       return NextResponse.json({ ...atualizado, ordemServicoId: ordemServico.id });
     }
@@ -81,7 +81,7 @@ export async function PATCH(req, { params }) {
         action: "status",
         entity: "Orcamento",
         entityId: orcamento.id,
-        description: `${session.user.name} recusou o orçamento de ${atualizado.cliente?.name || "cliente"}`,
+        description: `${session.user.name} (${roleLabel(session.user.role)}) recusou o orçamento de ${atualizado.cliente?.name || "cliente"}`,
       });
       return NextResponse.json(atualizado);
     }
@@ -113,7 +113,7 @@ export async function PATCH(req, { params }) {
     action: "update",
     entity: "Orcamento",
     entityId: atualizado.id,
-    description: `${session.user.name} editou o orçamento de ${atualizado.cliente?.name || "cliente"}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) editou o orçamento de ${atualizado.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json(atualizado);
@@ -138,7 +138,7 @@ export async function DELETE(req, { params }) {
     action: "delete",
     entity: "Orcamento",
     entityId: orcamento.id,
-    description: `${session.user.name} excluiu um orçamento`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) excluiu um orçamento`,
   });
 
   return NextResponse.json({ ok: true });

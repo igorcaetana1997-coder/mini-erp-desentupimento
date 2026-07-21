@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyClienteStatusChange } from "@/lib/notifications";
-import { isGestor } from "@/lib/permissions";
+import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 
 const include = {
@@ -52,7 +52,7 @@ export async function PATCH(req, { params }) {
     action: "status",
     entity: "OrdemServico",
     entityId: updated.id,
-    description: `${session.user.name} iniciou o atendimento da OS de ${os.cliente?.name || "cliente"}`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) iniciou o atendimento da OS de ${os.cliente?.name || "cliente"}`,
   });
 
   return NextResponse.json(updated);
