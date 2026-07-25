@@ -15,6 +15,7 @@ export async function GET(req, { params }) {
     where: { id: params.id },
     include: {
       ordens: {
+        where: { deletedAt: null },
         include: { technician: { select: { id: true, name: true } } },
         orderBy: { createdAt: "desc" },
       },
