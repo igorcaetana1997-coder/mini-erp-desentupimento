@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/notificacoes-diarias",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/backup-clientes",
+      "schedule": "0 13 * * 5"
     }
   ]
 }
