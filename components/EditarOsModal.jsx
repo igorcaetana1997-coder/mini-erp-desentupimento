@@ -24,9 +24,14 @@ const PAYMENT_METHODS = [
 ];
 
 const PARCERIA_TIPOS = [
-  { value: "repassado", label: "Repassei a ele — eu recebo comissão" },
-  { value: "recebido", label: "Recebi dele — eu pago comissão" },
+  { value: "repassado", label: "Eu repassei o serviço a ele" },
+  { value: "recebido", label: "Ele repassou o serviço pra mim" },
 ];
+
+const PARCERIA_LEGENDA = {
+  repassado: "% que você recebe de comissão dele. Deixe 0 se não houver repasse nenhum — ele fica com o valor todo.",
+  recebido: "% que você paga de comissão a ele. Deixe 0 se não houver repasse nenhum — você fica com o valor todo.",
+};
 
 function toLocalInputValue(value) {
   const d = new Date(value);
@@ -47,7 +52,7 @@ export default function EditarOsModal({ os, tecnicos, parceiros = [], onConfirm,
   const [parceiroId, setParceiroId] = useState(os.parceiroId || "");
   const [parceriaTipo, setParceriaTipo] = useState(os.parceriaTipo || PARCERIA_TIPOS[0].value);
   const [parceriaPercentual, setParceriaPercentual] = useState(
-    os.parceriaPercentual != null ? String(os.parceriaPercentual) : ""
+    os.parceriaPercentual != null ? String(os.parceriaPercentual) : "0"
   );
 
   const submit = () => {
@@ -189,11 +194,14 @@ export default function EditarOsModal({ os, tecnicos, parceiros = [], onConfirm,
                 </select>
                 <input
                   type="number"
+                  min="0"
+                  max="100"
                   value={parceriaPercentual}
                   onChange={(e) => setParceriaPercentual(e.target.value)}
                   placeholder="Percentual da comissão (%)"
                   className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
                 />
+                <p className="text-[11px] text-[rgb(var(--stone))]">{PARCERIA_LEGENDA[parceriaTipo]}</p>
               </>
             )}
           </div>

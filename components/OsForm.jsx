@@ -32,9 +32,14 @@ function nowLocalInputValue() {
 }
 
 const PARCERIA_TIPOS = [
-  { value: "repassado", label: "Repassei a ele — eu recebo comissão" },
-  { value: "recebido", label: "Recebi dele — eu pago comissão" },
+  { value: "repassado", label: "Eu repassei o serviço a ele" },
+  { value: "recebido", label: "Ele repassou o serviço pra mim" },
 ];
+
+const PARCERIA_LEGENDA = {
+  repassado: "% que você recebe de comissão dele. Deixe 0 se não houver repasse nenhum — ele fica com o valor todo.",
+  recebido: "% que você paga de comissão a ele. Deixe 0 se não houver repasse nenhum — você fica com o valor todo.",
+};
 
 export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCancel, onClienteCriado, saving }) {
   const [clientId, setClientId] = useState(clients[0]?.id || NOVO_CLIENTE);
@@ -50,7 +55,7 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
   const [dueDate, setDueDate] = useState("");
   const [parceiroId, setParceiroId] = useState("");
   const [parceriaTipo, setParceriaTipo] = useState(PARCERIA_TIPOS[0].value);
-  const [parceriaPercentual, setParceriaPercentual] = useState("");
+  const [parceriaPercentual, setParceriaPercentual] = useState("0");
 
   const criarClienteInline = async (data) => {
     setSavingNovoCliente(true);
@@ -241,11 +246,14 @@ export default function OsForm({ clients, tecnicos, parceiros = [], onSave, onCa
               </select>
               <input
                 type="number"
+                min="0"
+                max="100"
                 value={parceriaPercentual}
                 onChange={(e) => setParceriaPercentual(e.target.value)}
                 placeholder="Percentual da comissão (%)"
                 className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
               />
+              <p className="text-[11px] text-[rgb(var(--stone))]">{PARCERIA_LEGENDA[parceriaTipo]}</p>
             </>
           )}
         </div>
