@@ -6,7 +6,7 @@ import DocumentoCard from "@/components/DocumentoCard";
 import { STATUS as OS_STATUS } from "@/components/Stamp";
 import { formatEndereco } from "@/lib/formatEndereco";
 import { formatMoeda } from "@/lib/formatMoeda";
-import { baixarPdf, imprimirPdf } from "@/lib/gerarPdf";
+import { baixarPdf, imprimirPdf, compartilharPdf } from "@/lib/gerarPdf";
 
 const PAYMENT_LABELS = {
   dinheiro: "Dinheiro",
@@ -31,13 +31,14 @@ export default function ReciboDocumento({
   assinaturaCliente,
   emitidoEmLabel,
 }) {
-  const [gerando, setGerando] = useState(null); // "baixar" | "imprimir" | null
+  const [gerando, setGerando] = useState(null); // "baixar" | "imprimir" | "whatsapp" | null
   const [erro, setErro] = useState("");
 
   const digits = (cliente?.phone || "").replace(/\D/g, "");
+  const mensagemWhatsapp = "Olá! Segue o recibo do serviço realizado. Obrigado por confiar na Real Leader Desentupidora! 😊";
   const whatsappHref = digits
     ? `https://wa.me/55${digits}?text=${encodeURIComponent(
-        "Olá! Segue o recibo do serviço realizado. Baixe o PDF que acabamos de gerar e anexe aqui, por favor."
+        `${mensagemWhatsapp} Baixe o PDF que acabamos de gerar e anexe aqui, por favor.`
       )}`
     : null;
 
@@ -96,6 +97,28 @@ export default function ReciboDocumento({
     }
   };
 
+  const handleCompartilharWhatsapp = async () => {
+    setErro("");
+    setGerando("whatsapp");
+    try {
+      const documento = await montarDocumentoPdf();
+      const resultado = await compartilharPdf(
+        documento,
+        `recibo-os-${osId.slice(-6).toUpperCase()}.pdf`,
+        mensagemWhatsapp
+      );
+      // Sem suporte a compartilhar arquivo (a maioria dos desktops): já baixou o
+      // PDF, agora abre a conversa do cliente pra anexar manualmente.
+      if (resultado === "baixado" && whatsappHref) {
+        window.open(whatsappHref, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setErro("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setGerando(null);
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
@@ -115,15 +138,15 @@ export default function ReciboDocumento({
         >
           <Printer size={14} /> {gerando === "imprimir" ? "Gerando PDF…" : "Imprimir"}
         </button>
-        {whatsappHref && (
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#203D7B] transition-colors"
+        {digits && (
+          <button
+            type="button"
+            onClick={handleCompartilharWhatsapp}
+            disabled={gerando !== null}
+            className="flex items-center gap-1.5 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#203D7B] transition-colors disabled:opacity-60"
           >
-            <MessageCircle size={14} /> Abrir WhatsApp do cliente
-          </a>
+            <MessageCircle size={14} /> {gerando === "whatsapp" ? "Preparando…" : "Enviar pelo WhatsApp"}
+          </button>
         )}
         {erro && <p className="text-xs text-[#A02018] w-full">{erro}</p>}
       </div>

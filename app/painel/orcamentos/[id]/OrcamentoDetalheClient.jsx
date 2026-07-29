@@ -8,7 +8,7 @@ import OrcamentoForm from "@/components/OrcamentoForm";
 import DocumentoCard from "@/components/DocumentoCard";
 import { formatEndereco } from "@/lib/formatEndereco";
 import { formatMoeda } from "@/lib/formatMoeda";
-import { baixarPdf, imprimirPdf } from "@/lib/gerarPdf";
+import { baixarPdf, imprimirPdf, compartilharPdf } from "@/lib/gerarPdf";
 
 const STATUS_STAMP = {
   pendente: { label: "Pendente", bg: "#E8A33D", text: "#1a1208" },
@@ -138,6 +138,30 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     }
   };
 
+  const handleCompartilharWhatsapp = async () => {
+    if (!orcamento) return;
+    setError("");
+    setGerando("whatsapp");
+    try {
+      const documento = await montarDocumentoPdf();
+      const mensagem = `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(
+        orcamento.value
+      )}. Obrigado por considerar a Real Leader Desentupidora! 😊`;
+      const resultado = await compartilharPdf(
+        documento,
+        `orcamento-${orcamento.id.slice(-6).toUpperCase()}.pdf`,
+        mensagem
+      );
+      if (resultado === "baixado" && whatsappHref) {
+        window.open(whatsappHref, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setError("Não foi possível gerar o PDF. Tente novamente.");
+    } finally {
+      setGerando(null);
+    }
+  };
+
   if (!loaded) {
     return <div className="max-w-4xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -156,7 +180,7 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     ? `https://wa.me/55${digits}?text=${encodeURIComponent(
         `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(
           orcamento.value
-        )}. Baixe o PDF que geramos e anexe aqui, por favor.`
+        )}. Baixe o PDF que geramos e anexe aqui, por favor. Obrigado por considerar a Real Leader Desentupidora! 😊`
       )}`
     : null;
   const emitidoEmLabel = new Date(orcamento.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
@@ -196,15 +220,15 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
         >
           <Printer size={14} /> {gerando === "imprimir" ? "Gerando PDF…" : "Imprimir"}
         </button>
-        {whatsappHref && (
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#203D7B] transition-colors"
+        {digits && (
+          <button
+            type="button"
+            onClick={handleCompartilharWhatsapp}
+            disabled={gerando !== null}
+            className="flex items-center gap-1.5 bg-[#142D65] text-[#F2EFE9] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#203D7B] transition-colors disabled:opacity-60"
           >
-            <MessageCircle size={14} /> Abrir WhatsApp do cliente
-          </a>
+            <MessageCircle size={14} /> {gerando === "whatsapp" ? "Preparando…" : "Enviar pelo WhatsApp"}
+          </button>
         )}
         <button
           type="button"
