@@ -53,6 +53,8 @@ export async function POST(req, { params }) {
       mensagem: orcamento.mensagemCapa || "",
       numero,
       clienteNome: orcamento.cliente.name,
+      valorTotal: orcamento.value,
+      validoAte: orcamento.validoAte,
     });
   } catch (err) {
     console.error("Falha ao enviar e-mail do orçamento:", err);

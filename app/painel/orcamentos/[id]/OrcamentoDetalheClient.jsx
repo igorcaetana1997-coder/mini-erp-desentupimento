@@ -200,12 +200,20 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">
-      <Link
-        href="/painel/orcamentos"
-        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] mb-4 hover:underline"
-      >
-        <ArrowLeft size={14} /> Voltar aos orçamentos
-      </Link>
+      <div className="flex items-center justify-between mb-4">
+        <Link
+          href="/painel/orcamentos"
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-[rgb(var(--ink-strong)/1)] hover:underline"
+        >
+          <ArrowLeft size={14} /> Voltar aos orçamentos
+        </Link>
+        <span
+          className="text-xs text-[rgb(var(--stone))]"
+          title="Referência interna sequencial — só você vê, não aparece pro cliente"
+        >
+          Referência interna: #{orcamento.numeroSequencial}
+        </span>
+      </div>
 
       {error && (
         <div className="mb-4 border border-[#A02018]/40 bg-[#A02018]/10 text-[#A02018] text-sm px-3 py-2 flex items-center justify-between">

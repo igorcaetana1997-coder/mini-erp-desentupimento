@@ -153,11 +153,19 @@ export default function OrcamentosClient() {
               <p className="text-xs text-[rgb(var(--ink))] truncate">{o.serviceType}</p>
               <p className="text-xs text-[rgb(var(--stone))]">R$ {formatMoeda(o.value)}</p>
             </div>
-            <span
-              className={`shrink-0 text-[10px] font-bold uppercase px-1.5 py-0.5 ${ORCAMENTO_STATUS_CLASSES[o.status]}`}
-            >
-              {ORCAMENTO_STATUS_LABELS[o.status]}
-            </span>
+            <div className="shrink-0 flex flex-col items-end gap-1">
+              <span
+                className={`text-[10px] font-bold uppercase px-1.5 py-0.5 ${ORCAMENTO_STATUS_CLASSES[o.status]}`}
+              >
+                {ORCAMENTO_STATUS_LABELS[o.status]}
+              </span>
+              <span
+                className="text-[10px] text-[rgb(var(--stone))]"
+                title="Referência interna — só você vê, não aparece pro cliente"
+              >
+                #{o.numeroSequencial}
+              </span>
+            </div>
           </Link>
         ))}
       </div>

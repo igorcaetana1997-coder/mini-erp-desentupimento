@@ -52,23 +52,23 @@ model PasswordResetToken {
 }
 
 model Cliente {
-  id             String    @id @default(cuid())
-  name           String
-  phone          String
-  email          String?
-  documento      String? // CPF ou CNPJ
-  dataNascimento DateTime? // aniversário do cliente
-  cep            String?
-  logradouro     String?
-  numero         String?
-  complemento    String?
-  bairro         String?
-  cidade         String?
-  uf             String?
-  observacoes    String?
-  createdAt      DateTime  @default(now())
+  id                String    @id @default(cuid())
+  name              String
+  phone             String
+  email             String?
+  documento         String? // CPF ou CNPJ
+  dataNascimento    DateTime? // aniversário do cliente
+  cep               String?
+  logradouro        String?
+  numero            String?
+  complemento       String?
+  bairro            String?
+  cidade            String?
+  uf                String?
+  observacoes       String?
+  createdAt         DateTime  @default(now())
   ultimoParabensAno Int? // ano em que a mensagem de aniversário automática já foi enviada
-  deletedAt      DateTime? // preenchido = está na lixeira; null = ativo
+  deletedAt         DateTime? // preenchido = está na lixeira; null = ativo
 
   ordens     OrdemServico[]
   orcamentos Orcamento[]
@@ -88,8 +88,8 @@ model OrdemServico {
 
   // Financeiro
   paymentMethod String? // "dinheiro" | "pix" | "cartao" | "boleto"
-  paymentStatus String  @default("pendente") // legado, não usado mais pelo app (ver valorPago)
-  valorPago     Float   @default(0) // quanto já foi recebido; pago/parcial/pendente é derivado (lib/paymentStatus.js)
+  paymentStatus String    @default("pendente") // legado, não usado mais pelo app (ver valorPago)
+  valorPago     Float     @default(0) // quanto já foi recebido; pago/parcial/pendente é derivado (lib/paymentStatus.js)
   dueDate       DateTime?
 
   // Terceirização
@@ -101,7 +101,7 @@ model OrdemServico {
   // Materiais e conclusão
   materiais         String?
   assinaturaCliente String? // data URL base64 (PNG) do canvas de assinatura
-  avaliacaoNota     Int?    // 1 a 5, opcional
+  avaliacaoNota     Int? // 1 a 5, opcional
 
   // Recusa
   motivoRecusa String?
@@ -124,20 +124,21 @@ model OrdemServico {
 }
 
 model Orcamento {
-  id             String          @id @default(cuid())
-  clienteId      String
-  cliente        Cliente         @relation(fields: [clienteId], references: [id])
-  serviceType    String // resumo consolidado a partir dos itens (ou texto livre em orçamentos legados sem itens)
-  value          Float // total consolidado = soma dos itens (ou valor livre em orçamentos legados sem itens)
-  mensagemCapa   String? // mensagem/oferta exibida no topo do PDF e do e-mail
-  validoAte      DateTime? // validade do orçamento (opcional)
-  observacoes    String?
-  status         String          @default("pendente") // "pendente" | "aprovado" | "recusado"
-  ordemServicoId String?         @unique // preenchido quando aprovado e a OS é gerada automaticamente
-  ordemServico   OrdemServico?   @relation(fields: [ordemServicoId], references: [id])
-  itens          OrcamentoItem[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id               String          @id @default(cuid())
+  numeroSequencial Int             @unique @default(autoincrement()) // referência interna sequencial (só aparece no painel) — o cliente vê só o código não sequencial derivado do id
+  clienteId        String
+  cliente          Cliente         @relation(fields: [clienteId], references: [id])
+  serviceType      String // resumo consolidado a partir dos itens (ou texto livre em orçamentos legados sem itens)
+  value            Float // total consolidado = soma dos itens (ou valor livre em orçamentos legados sem itens)
+  mensagemCapa     String? // mensagem/oferta exibida no topo do PDF e do e-mail
+  validoAte        DateTime? // validade do orçamento (opcional)
+  observacoes      String?
+  status           String          @default("pendente") // "pendente" | "aprovado" | "recusado"
+  ordemServicoId   String?         @unique // preenchido quando aprovado e a OS é gerada automaticamente
+  ordemServico     OrdemServico?   @relation(fields: [ordemServicoId], references: [id])
+  itens            OrcamentoItem[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 }
 
 model OrcamentoItem {

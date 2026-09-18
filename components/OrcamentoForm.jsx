@@ -221,7 +221,7 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
           <textarea
             value={mensagemCapa}
             onChange={(e) => setMensagemCapa(e.target.value)}
-            placeholder="Mensagem de capa / oferta (opcional) — aparece no topo do PDF e do e-mail"
+            placeholder="Mensagem de capa / oferta (opcional) — ex: desconto, condição à vista, prazo. Aparece no topo do PDF e do e-mail. Deixe em branco pra não mostrar nada"
             rows={2}
             className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52] resize-none"
           />
