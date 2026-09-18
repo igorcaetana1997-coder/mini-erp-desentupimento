@@ -7,6 +7,7 @@ import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 import { formatMoeda } from "@/lib/formatMoeda";
 import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
 import { validarDescontoAvistaPercentual } from "@/lib/orcamentoDesconto";
+import { validarEmailsCopia } from "@/lib/emailList";
 
 const include = {
   cliente: true,
@@ -130,6 +131,13 @@ export async function PATCH(req, { params }) {
     }
     data.descontoAvistaPercentual = percentual;
   }
+  if (body.emailsCopia !== undefined) {
+    const { emails, error: erroEmailsCopia } = validarEmailsCopia(body.emailsCopia);
+    if (erroEmailsCopia) {
+      return NextResponse.json({ error: erroEmailsCopia }, { status: 400 });
+    }
+    data.emailsCopia = emails;
+  }
 
   const atualizado = await prisma.$transaction(async (tx) => {
     if (novosItens) {
@@ -154,6 +162,7 @@ export async function PATCH(req, { params }) {
         label: "o desconto à vista",
         format: (v) => (v ? `${v}%` : "sem desconto"),
       },
+      emailsCopia: { label: "os e-mails em cópia" },
     })
   );
   await registrarAuditoria({

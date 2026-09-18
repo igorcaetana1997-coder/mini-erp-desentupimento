@@ -6,6 +6,7 @@ import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
 import { validarDescontoAvistaPercentual } from "@/lib/orcamentoDesconto";
+import { validarEmailsCopia } from "@/lib/emailList";
 
 const include = {
   cliente: true,
@@ -57,6 +58,11 @@ export async function POST(req) {
     return NextResponse.json({ error: erroDesconto }, { status: 400 });
   }
 
+  const { emails: emailsCopia, error: erroEmailsCopia } = validarEmailsCopia(body.emailsCopia);
+  if (erroEmailsCopia) {
+    return NextResponse.json({ error: erroEmailsCopia }, { status: 400 });
+  }
+
   const orcamento = await prisma.orcamento.create({
     data: {
       clienteId,
@@ -64,6 +70,7 @@ export async function POST(req) {
       value: calcularTotalItens(itens),
       mensagemCapa: mensagemCapa?.trim() || null,
       descontoAvistaPercentual,
+      emailsCopia,
       validoAte: validoAte ? new Date(validoAte) : null,
       observacoes: observacoes?.trim() || null,
       itens: { create: itens.map((it, idx) => ({ ...it, ordem: idx })) },

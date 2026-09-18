@@ -56,6 +56,7 @@ export async function POST(req, { params }) {
       valorTotal: orcamento.value,
       validoAte: orcamento.validoAte,
       descontoAvistaPercentual: orcamento.descontoAvistaPercentual,
+      cc: orcamento.emailsCopia,
     });
   } catch (err) {
     console.error("Falha ao enviar e-mail do orçamento:", err);
@@ -70,7 +71,9 @@ export async function POST(req, { params }) {
     action: "update",
     entity: "Orcamento",
     entityId: orcamento.id,
-    description: `${session.user.name} (${roleLabel(session.user.role)}) enviou o orçamento de ${orcamento.cliente.name} por e-mail (${orcamento.cliente.email})`,
+    description: `${session.user.name} (${roleLabel(session.user.role)}) enviou o orçamento de ${orcamento.cliente.name} por e-mail (${orcamento.cliente.email})${
+      orcamento.emailsCopia ? ` com cópia para ${orcamento.emailsCopia}` : ""
+    }`,
   });
 
   return NextResponse.json({ ok: true });

@@ -60,6 +60,7 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
   const [mensagemCapa, setMensagemCapa] = useState(initial?.mensagemCapa || "");
   const [validoAte, setValidoAte] = useState(initial?.validoAte ? initial.validoAte.slice(0, 10) : "");
   const [observacoes, setObservacoes] = useState(initial?.observacoes || "");
+  const [emailsCopia, setEmailsCopia] = useState(initial?.emailsCopia || "");
   const [descontoAtivo, setDescontoAtivo] = useState(Boolean(initial?.descontoAvistaPercentual));
   const [descontoPercentual, setDescontoPercentual] = useState(
     initial?.descontoAvistaPercentual ? String(initial.descontoAvistaPercentual) : ""
@@ -111,6 +112,7 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
       observacoes,
       mensagemCapa: mensagemCapa.trim() || null,
       descontoAvistaPercentual: descontoAtivo && descontoPercentual ? Number(descontoPercentual) : null,
+      emailsCopia: emailsCopia.trim() || null,
     });
   };
 
@@ -281,6 +283,18 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
                 )}
               </>
             )}
+          </div>
+
+          <div>
+            <input
+              value={emailsCopia}
+              onChange={(e) => setEmailsCopia(e.target.value)}
+              placeholder="E-mails em cópia (CC) — separados por vírgula (opcional)"
+              className="w-full border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+            />
+            <p className="mt-1 text-[11px] text-[rgb(var(--stone))]">
+              Ex: financeiro@empresa.com, gerente@empresa.com — recebem cópia junto com o cliente ao enviar por e-mail.
+            </p>
           </div>
 
           <textarea

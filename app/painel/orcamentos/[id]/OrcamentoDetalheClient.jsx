@@ -258,7 +258,13 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
           type="button"
           onClick={handleEnviarEmail}
           disabled={gerando !== null || !orcamento.cliente?.email}
-          title={!orcamento.cliente?.email ? "Cliente não tem e-mail cadastrado" : undefined}
+          title={
+            !orcamento.cliente?.email
+              ? "Cliente não tem e-mail cadastrado"
+              : orcamento.emailsCopia
+                ? `Também vai em cópia para: ${orcamento.emailsCopia}`
+                : undefined
+          }
           className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors disabled:opacity-40"
         >
           <Mail size={14} /> {gerando === "email" ? "Enviando…" : emailEnviado ? "E-mail enviado ✓" : "Enviar por e-mail"}
@@ -271,6 +277,12 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
           <Pencil size={14} /> Editar
         </button>
       </div>
+
+      {orcamento.emailsCopia && (
+        <p className="text-xs text-[rgb(var(--stone))] mb-4 -mt-2">
+          Em cópia (CC) ao enviar por e-mail: {orcamento.emailsCopia}
+        </p>
+      )}
 
       <div className="mb-4">
         {confirmAcao ? (

@@ -134,6 +134,7 @@ model Orcamento {
   descontoAvistaPercentual Float? // % de desconto à vista (opcional) — a frase de oferta é sempre montada na hora, a partir disso + validoAte
   validoAte                DateTime? // validade do orçamento (opcional)
   observacoes              String?
+  emailsCopia              String? // e-mails extras em cópia (CC) ao enviar por e-mail, separados por vírgula
   status                   String          @default("pendente") // "pendente" | "aprovado" | "recusado"
   ordemServicoId           String?         @unique // preenchido quando aprovado e a OS é gerada automaticamente
   ordemServico             OrdemServico?   @relation(fields: [ordemServicoId], references: [id])
