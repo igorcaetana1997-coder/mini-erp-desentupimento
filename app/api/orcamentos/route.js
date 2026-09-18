@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
 import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
+import { validarDescontoAvistaPercentual } from "@/lib/orcamentoDesconto";
 
 const include = {
   cliente: true,
@@ -49,12 +50,20 @@ export async function POST(req) {
     return NextResponse.json({ error: erroItens }, { status: 400 });
   }
 
+  const { percentual: descontoAvistaPercentual, error: erroDesconto } = validarDescontoAvistaPercentual(
+    body.descontoAvistaPercentual
+  );
+  if (erroDesconto) {
+    return NextResponse.json({ error: erroDesconto }, { status: 400 });
+  }
+
   const orcamento = await prisma.orcamento.create({
     data: {
       clienteId,
       serviceType: consolidarServiceType(itens),
       value: calcularTotalItens(itens),
       mensagemCapa: mensagemCapa?.trim() || null,
+      descontoAvistaPercentual,
       validoAte: validoAte ? new Date(validoAte) : null,
       observacoes: observacoes?.trim() || null,
       itens: { create: itens.map((it, idx) => ({ ...it, ordem: idx })) },

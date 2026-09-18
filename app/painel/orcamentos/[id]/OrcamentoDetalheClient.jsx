@@ -10,6 +10,7 @@ import { formatEndereco } from "@/lib/formatEndereco";
 import { formatMoeda } from "@/lib/formatMoeda";
 import { baixarPdf, imprimirPdf, compartilharPdf } from "@/lib/gerarPdf";
 import { STATUS_STAMP } from "@/lib/orcamentoStamp";
+import { montarMensagemDescontoAvista } from "@/lib/orcamentoDesconto";
 
 export default function OrcamentoDetalheClient({ orcamentoId }) {
   const [orcamento, setOrcamento] = useState(null);
@@ -140,9 +141,10 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     setGerando("whatsapp");
     try {
       const documento = await montarDocumentoPdf();
+      const mensagemDesconto = montarMensagemDescontoAvista(orcamento);
       const mensagem = `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(
         orcamento.value
-      )}. Obrigado por considerar a Real Leader Desentupidora! 😊`;
+      )}.${mensagemDesconto ? ` ${mensagemDesconto}` : ""} Obrigado por considerar a Real Leader Desentupidora! 😊`;
       const resultado = await compartilharPdf(
         documento,
         `orcamento-${orcamento.id.slice(-6).toUpperCase()}.pdf`,
@@ -189,11 +191,12 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
 
   const stamp = STATUS_STAMP[orcamento.status];
   const digits = (orcamento.cliente?.phone || "").replace(/\D/g, "");
+  const mensagemDescontoHref = montarMensagemDescontoAvista(orcamento);
   const whatsappHref = digits
     ? `https://wa.me/55${digits}?text=${encodeURIComponent(
-        `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(
-          orcamento.value
-        )}. Baixe o PDF que geramos e anexe aqui, por favor. Obrigado por considerar a Real Leader Desentupidora! 😊`
+        `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(orcamento.value)}.${
+          mensagemDescontoHref ? ` ${mensagemDescontoHref}` : ""
+        } Baixe o PDF que geramos e anexe aqui, por favor. Obrigado por considerar a Real Leader Desentupidora! 😊`
       )}`
     : null;
   const emitidoEmLabel = new Date(orcamento.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
@@ -391,6 +394,10 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
             </div>
           )}
 
+          {montarMensagemDescontoAvista(orcamento) && (
+            <div className="desconto-avista">{montarMensagemDescontoAvista(orcamento)}</div>
+          )}
+
           <table className="items">
             <thead>
               <tr>
@@ -466,6 +473,15 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
         .mensagem-capa {
           padding: 10px 0;
           border-top: 1px solid rgba(20, 45, 101, 0.16);
+        }
+        .desconto-avista {
+          background: #c6fe1f;
+          color: #142d65;
+          font-weight: 700;
+          font-size: 12.5px;
+          border-radius: 4px;
+          padding: 8px 12px;
+          margin: 10px 0;
         }
         :global(table.items) {
           width: 100%;

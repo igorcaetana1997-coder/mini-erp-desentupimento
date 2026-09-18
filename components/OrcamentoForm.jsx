@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, FileText, Plus, Trash2 } from "lucide-react";
 import ClientForm from "./ClientForm";
 import { formatMoeda } from "@/lib/formatMoeda";
+import { montarMensagemDescontoAvista } from "@/lib/orcamentoDesconto";
 
 const SERVICE_TYPES = [
   "Desentupimento de vaso sanitário",
@@ -59,6 +60,10 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
   const [mensagemCapa, setMensagemCapa] = useState(initial?.mensagemCapa || "");
   const [validoAte, setValidoAte] = useState(initial?.validoAte ? initial.validoAte.slice(0, 10) : "");
   const [observacoes, setObservacoes] = useState(initial?.observacoes || "");
+  const [descontoAtivo, setDescontoAtivo] = useState(Boolean(initial?.descontoAvistaPercentual));
+  const [descontoPercentual, setDescontoPercentual] = useState(
+    initial?.descontoAvistaPercentual ? String(initial.descontoAvistaPercentual) : ""
+  );
 
   const criarClienteInline = async (data) => {
     setSavingNovoCliente(true);
@@ -105,6 +110,7 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
       validoAte: validoAte || null,
       observacoes,
       mensagemCapa: mensagemCapa.trim() || null,
+      descontoAvistaPercentual: descontoAtivo && descontoPercentual ? Number(descontoPercentual) : null,
     });
   };
 
@@ -236,6 +242,45 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
               onChange={(e) => setValidoAte(e.target.value)}
               className="w-full mt-1 border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
             />
+          </div>
+
+          <div className="border border-[rgb(var(--border-strong)/0.25)] p-2 flex flex-col gap-1.5">
+            <label className="flex items-center gap-2 text-sm font-bold text-[rgb(var(--ink-strong)/1)]">
+              <input
+                type="checkbox"
+                checked={descontoAtivo}
+                onChange={(e) => setDescontoAtivo(e.target.checked)}
+              />
+              Oferecer desconto à vista
+            </label>
+            {descontoAtivo && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={descontoPercentual}
+                    onChange={(e) => setDescontoPercentual(e.target.value)}
+                    placeholder="% de desconto"
+                    className="w-28 border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+                  />
+                  <span className="text-xs text-[rgb(var(--stone))]">
+                    % à vista{validoAte ? "" : " — defina a validade acima pra incluir o prazo na frase"}
+                  </span>
+                </div>
+                {descontoPercentual && (
+                  <p className="text-xs italic text-[rgb(var(--ink))]">
+                    Vai aparecer: "
+                    {montarMensagemDescontoAvista({
+                      descontoAvistaPercentual: descontoPercentual,
+                      validoAte,
+                    })}
+                    "
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <textarea

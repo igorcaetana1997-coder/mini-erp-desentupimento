@@ -124,21 +124,22 @@ model OrdemServico {
 }
 
 model Orcamento {
-  id               String          @id @default(cuid())
-  numeroSequencial Int             @unique @default(autoincrement()) // referência interna sequencial (só aparece no painel) — o cliente vê só o código não sequencial derivado do id
-  clienteId        String
-  cliente          Cliente         @relation(fields: [clienteId], references: [id])
-  serviceType      String // resumo consolidado a partir dos itens (ou texto livre em orçamentos legados sem itens)
-  value            Float // total consolidado = soma dos itens (ou valor livre em orçamentos legados sem itens)
-  mensagemCapa     String? // mensagem/oferta exibida no topo do PDF e do e-mail
-  validoAte        DateTime? // validade do orçamento (opcional)
-  observacoes      String?
-  status           String          @default("pendente") // "pendente" | "aprovado" | "recusado"
-  ordemServicoId   String?         @unique // preenchido quando aprovado e a OS é gerada automaticamente
-  ordemServico     OrdemServico?   @relation(fields: [ordemServicoId], references: [id])
-  itens            OrcamentoItem[]
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                       String          @id @default(cuid())
+  numeroSequencial         Int             @unique @default(autoincrement()) // referência interna sequencial (só aparece no painel) — o cliente vê só o código não sequencial derivado do id
+  clienteId                String
+  cliente                  Cliente         @relation(fields: [clienteId], references: [id])
+  serviceType              String // resumo consolidado a partir dos itens (ou texto livre em orçamentos legados sem itens)
+  value                    Float // total consolidado = soma dos itens (ou valor livre em orçamentos legados sem itens)
+  mensagemCapa             String? // mensagem/oferta exibida no topo do PDF e do e-mail
+  descontoAvistaPercentual Float? // % de desconto à vista (opcional) — a frase de oferta é sempre montada na hora, a partir disso + validoAte
+  validoAte                DateTime? // validade do orçamento (opcional)
+  observacoes              String?
+  status                   String          @default("pendente") // "pendente" | "aprovado" | "recusado"
+  ordemServicoId           String?         @unique // preenchido quando aprovado e a OS é gerada automaticamente
+  ordemServico             OrdemServico?   @relation(fields: [ordemServicoId], references: [id])
+  itens                    OrcamentoItem[]
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
 }
 
 model OrcamentoItem {

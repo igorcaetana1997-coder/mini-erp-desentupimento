@@ -2,9 +2,11 @@ import { Document, View, Text } from "@react-pdf/renderer";
 import { DocumentoPdfShell, ItemsTable, styles } from "./DocumentoPdfShell";
 import { formatEndereco } from "@/lib/formatEndereco";
 import { formatMoeda } from "@/lib/formatMoeda";
+import { montarMensagemDescontoAvista } from "@/lib/orcamentoDesconto";
 
 export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel, numero, assets }) {
   const valorTotalTexto = `R$ ${formatMoeda(orcamento.value)}`;
+  const mensagemDesconto = montarMensagemDescontoAvista(orcamento);
   const temItens = orcamento.itens?.length > 0;
   const linhasItens = temItens
     ? orcamento.itens.map((it) => ({
@@ -51,6 +53,12 @@ export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel,
           <View style={{ marginBottom: 10 }}>
             <Text style={styles.fieldLabel}>Mensagem</Text>
             <Text style={styles.fieldSub}>{orcamento.mensagemCapa}</Text>
+          </View>
+        ) : null}
+
+        {mensagemDesconto ? (
+          <View style={{ backgroundColor: "#C6FE1F", borderRadius: 4, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 10 }}>
+            <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 9.5, color: "#142D65" }}>{mensagemDesconto}</Text>
           </View>
         ) : null}
 

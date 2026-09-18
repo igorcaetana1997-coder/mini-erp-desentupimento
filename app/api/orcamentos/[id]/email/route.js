@@ -55,6 +55,7 @@ export async function POST(req, { params }) {
       clienteNome: orcamento.cliente.name,
       valorTotal: orcamento.value,
       validoAte: orcamento.validoAte,
+      descontoAvistaPercentual: orcamento.descontoAvistaPercentual,
     });
   } catch (err) {
     console.error("Falha ao enviar e-mail do orçamento:", err);

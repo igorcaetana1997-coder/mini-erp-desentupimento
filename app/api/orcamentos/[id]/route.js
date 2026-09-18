@@ -6,6 +6,7 @@ import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 import { formatMoeda } from "@/lib/formatMoeda";
 import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
+import { validarDescontoAvistaPercentual } from "@/lib/orcamentoDesconto";
 
 const include = {
   cliente: true,
@@ -122,6 +123,13 @@ export async function PATCH(req, { params }) {
   if (typeof body.mensagemCapa === "string" || body.mensagemCapa === null) {
     data.mensagemCapa = body.mensagemCapa?.trim() || null;
   }
+  if (body.descontoAvistaPercentual !== undefined) {
+    const { percentual, error: erroDesconto } = validarDescontoAvistaPercentual(body.descontoAvistaPercentual);
+    if (erroDesconto) {
+      return NextResponse.json({ error: erroDesconto }, { status: 400 });
+    }
+    data.descontoAvistaPercentual = percentual;
+  }
 
   const atualizado = await prisma.$transaction(async (tx) => {
     if (novosItens) {
@@ -142,6 +150,10 @@ export async function PATCH(req, { params }) {
       validoAte: { label: "a validade", format: (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "sem validade") },
       observacoes: { label: "as observações" },
       mensagemCapa: { label: "a mensagem de capa" },
+      descontoAvistaPercentual: {
+        label: "o desconto à vista",
+        format: (v) => (v ? `${v}%` : "sem desconto"),
+      },
     })
   );
   await registrarAuditoria({
