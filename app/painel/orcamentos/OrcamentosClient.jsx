@@ -150,7 +150,9 @@ export default function OrcamentosClient() {
           >
             <div className="min-w-0 flex-1">
               <p className="font-bold text-[rgb(var(--ink-strong)/1)] text-sm truncate">{o.cliente?.name}</p>
-              <p className="text-xs text-[rgb(var(--ink))] truncate">{o.serviceType}</p>
+              <p className="text-xs text-[rgb(var(--ink))] truncate">
+                {o.itens?.length > 1 ? `${o.itens.length} serviços` : o.serviceType}
+              </p>
               <p className="text-xs text-[rgb(var(--stone))]">R$ {formatMoeda(o.value)}</p>
             </div>
             <div className="shrink-0 flex flex-col items-end gap-1">

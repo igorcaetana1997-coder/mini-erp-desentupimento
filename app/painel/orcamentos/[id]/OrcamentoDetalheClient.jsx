@@ -142,7 +142,8 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     try {
       const documento = await montarDocumentoPdf();
       const mensagemDesconto = montarMensagemDescontoAvista(orcamento);
-      const mensagem = `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(
+      const descricaoServico = orcamento.itens?.length > 1 ? "os serviços solicitados" : orcamento.serviceType;
+      const mensagem = `Olá! Segue o orçamento para ${descricaoServico}, no valor de R$ ${formatMoeda(
         orcamento.value
       )}.${mensagemDesconto ? ` ${mensagemDesconto}` : ""} Obrigado por considerar a Real Leader Desentupidora! 😊`;
       const resultado = await compartilharPdf(
@@ -191,10 +192,11 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
 
   const stamp = STATUS_STAMP[orcamento.status];
   const digits = (orcamento.cliente?.phone || "").replace(/\D/g, "");
+  const descricaoServico = orcamento.itens?.length > 1 ? "os serviços solicitados" : orcamento.serviceType;
   const mensagemDescontoHref = montarMensagemDescontoAvista(orcamento);
   const whatsappHref = digits
     ? `https://wa.me/55${digits}?text=${encodeURIComponent(
-        `Olá! Segue o orçamento para ${orcamento.serviceType}, no valor de R$ ${formatMoeda(orcamento.value)}.${
+        `Olá! Segue o orçamento para ${descricaoServico}, no valor de R$ ${formatMoeda(orcamento.value)}.${
           mensagemDescontoHref ? ` ${mensagemDescontoHref}` : ""
         } Baixe o PDF que geramos e anexe aqui, por favor. Obrigado por considerar a Real Leader Desentupidora! 😊`
       )}`
@@ -374,7 +376,7 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
               ? ` · Válido até ${new Date(orcamento.validoAte).toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
               : ""
           }`}
-          titulo={orcamento.serviceType}
+          titulo={orcamento.itens?.length > 1 ? "Orçamento de serviços" : orcamento.serviceType}
           stampLabel={stamp.label}
           stampBg={stamp.bg}
           stampText={stamp.text}
