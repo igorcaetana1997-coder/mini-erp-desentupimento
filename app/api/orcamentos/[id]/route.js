@@ -5,10 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 import { formatMoeda } from "@/lib/formatMoeda";
+import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
 
 const include = {
   cliente: true,
   ordemServico: { select: { id: true } },
+  itens: { orderBy: { ordem: "asc" } },
 };
 
 export async function GET(req, { params }) {
@@ -90,15 +92,26 @@ export async function PATCH(req, { params }) {
   }
 
   const data = {};
-  if (typeof body.serviceType === "string" && body.serviceType.trim()) {
-    data.serviceType = body.serviceType.trim();
-  }
-  if (body.value !== undefined) {
-    const valorNumero = Number(body.value);
-    if (!Number.isFinite(valorNumero) || valorNumero <= 0) {
-      return NextResponse.json({ error: "Valor deve ser um número maior que zero" }, { status: 400 });
+  let novosItens = null;
+  if (body.itens !== undefined) {
+    const { itens, error: erroItens } = validarItens(body.itens);
+    if (erroItens) {
+      return NextResponse.json({ error: erroItens }, { status: 400 });
     }
-    data.value = valorNumero;
+    novosItens = itens;
+    data.serviceType = consolidarServiceType(itens);
+    data.value = calcularTotalItens(itens);
+  } else {
+    if (typeof body.serviceType === "string" && body.serviceType.trim()) {
+      data.serviceType = body.serviceType.trim();
+    }
+    if (body.value !== undefined) {
+      const valorNumero = Number(body.value);
+      if (!Number.isFinite(valorNumero) || valorNumero <= 0) {
+        return NextResponse.json({ error: "Valor deve ser um número maior que zero" }, { status: 400 });
+      }
+      data.value = valorNumero;
+    }
   }
   if (body.validoAte !== undefined) {
     data.validoAte = body.validoAte ? new Date(body.validoAte) : null;
@@ -106,15 +119,31 @@ export async function PATCH(req, { params }) {
   if (typeof body.observacoes === "string") {
     data.observacoes = body.observacoes.trim() || null;
   }
+  if (typeof body.mensagemCapa === "string" || body.mensagemCapa === null) {
+    data.mensagemCapa = body.mensagemCapa?.trim() || null;
+  }
 
-  const atualizado = await prisma.orcamento.update({ where: { id: params.id }, data, include });
-
-  const mudancas = descreverAlteracoes(orcamento, data, {
-    value: { label: "o valor", format: (v) => `R$ ${formatMoeda(v)}` },
-    serviceType: { label: "o tipo de serviço" },
-    validoAte: { label: "a validade", format: (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "sem validade") },
-    observacoes: { label: "as observações" },
+  const atualizado = await prisma.$transaction(async (tx) => {
+    if (novosItens) {
+      await tx.orcamentoItem.deleteMany({ where: { orcamentoId: params.id } });
+      await tx.orcamentoItem.createMany({
+        data: novosItens.map((it, idx) => ({ ...it, ordem: idx, orcamentoId: params.id })),
+      });
+    }
+    return tx.orcamento.update({ where: { id: params.id }, data, include });
   });
+
+  const mudancas = novosItens ? ["os itens do orçamento"] : [];
+  mudancas.push(
+    ...descreverAlteracoes(orcamento, data, {
+      ...(novosItens
+        ? {}
+        : { value: { label: "o valor", format: (v) => `R$ ${formatMoeda(v)}` }, serviceType: { label: "o tipo de serviço" } }),
+      validoAte: { label: "a validade", format: (v) => (v ? new Date(v).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "sem validade") },
+      observacoes: { label: "as observações" },
+      mensagemCapa: { label: "a mensagem de capa" },
+    })
+  );
   await registrarAuditoria({
     session,
     action: "update",

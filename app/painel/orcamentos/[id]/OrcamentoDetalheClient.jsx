@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Printer, MessageCircle, Pencil, Check, X as XIcon, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Printer, MessageCircle, Mail, Pencil, Check, X as XIcon, Trash2 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import OrcamentoForm from "@/components/OrcamentoForm";
 import DocumentoCard from "@/components/DocumentoCard";
 import { formatEndereco } from "@/lib/formatEndereco";
 import { formatMoeda } from "@/lib/formatMoeda";
 import { baixarPdf, imprimirPdf, compartilharPdf } from "@/lib/gerarPdf";
-
-const STATUS_STAMP = {
-  pendente: { label: "Pendente", bg: "#E8A33D", text: "#1a1208" },
-  aprovado: { label: "Aprovado", bg: "#1E7A52", text: "#F2EFE9" },
-  recusado: { label: "Recusado", bg: "#A02018", text: "#F2EFE9" },
-};
+import { STATUS_STAMP } from "@/lib/orcamentoStamp";
 
 export default function OrcamentoDetalheClient({ orcamentoId }) {
   const [orcamento, setOrcamento] = useState(null);
@@ -23,7 +18,8 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
   const [editando, setEditando] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmAcao, setConfirmAcao] = useState(null); // "aprovar" | "recusar" | "excluir"
-  const [gerando, setGerando] = useState(null); // "baixar" | "imprimir" | null
+  const [gerando, setGerando] = useState(null); // "baixar" | "imprimir" | "whatsapp" | "email" | null
+  const [emailEnviado, setEmailEnviado] = useState(false);
 
   const load = async () => {
     try {
@@ -162,6 +158,23 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
     }
   };
 
+  const handleEnviarEmail = async () => {
+    if (!orcamento) return;
+    setError("");
+    setEmailEnviado(false);
+    setGerando("email");
+    try {
+      const res = await fetch(`/api/orcamentos/${orcamentoId}/email`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Não foi possível enviar o e-mail.");
+      setEmailEnviado(true);
+    } catch (e) {
+      setError(e.message || "Não foi possível enviar o e-mail.");
+    } finally {
+      setGerando(null);
+    }
+  };
+
   if (!loaded) {
     return <div className="max-w-4xl mx-auto p-6 text-[rgb(var(--ink))] text-sm">Carregando…</div>;
   }
@@ -230,6 +243,15 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
             <MessageCircle size={14} /> {gerando === "whatsapp" ? "Preparando…" : "Enviar pelo WhatsApp"}
           </button>
         )}
+        <button
+          type="button"
+          onClick={handleEnviarEmail}
+          disabled={gerando !== null || !orcamento.cliente?.email}
+          title={!orcamento.cliente?.email ? "Cliente não tem e-mail cadastrado" : undefined}
+          className="flex items-center gap-1.5 border border-[rgb(var(--border-strong)/0.3)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide px-3 py-2 hover:bg-[#142D65]/5 transition-colors disabled:opacity-40"
+        >
+          <Mail size={14} /> {gerando === "email" ? "Enviando…" : emailEnviado ? "E-mail enviado ✓" : "Enviar por e-mail"}
+        </button>
         <button
           type="button"
           onClick={() => setEditando(true)}
@@ -354,6 +376,13 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
             </div>
           </div>
 
+          {orcamento.mensagemCapa && (
+            <div className="mensagem-capa">
+              <p className="field-label">Mensagem</p>
+              <p className="field-sub">{orcamento.mensagemCapa}</p>
+            </div>
+          )}
+
           <table className="items">
             <thead>
               <tr>
@@ -362,19 +391,32 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>
-                  {orcamento.serviceType}
-                  {orcamento.observacoes && <span className="sub-line">{orcamento.observacoes}</span>}
-                </td>
-                <td className="num">R$ {formatMoeda(orcamento.value)}</td>
-              </tr>
+              {orcamento.itens?.length > 0 ? (
+                orcamento.itens.map((it) => (
+                  <tr key={it.id}>
+                    <td>{it.quantidade > 1 ? `${it.descricao} (x${it.quantidade})` : it.descricao}</td>
+                    <td className="num">R$ {formatMoeda(it.quantidade * it.valorUnitario)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td>{orcamento.serviceType}</td>
+                  <td className="num">R$ {formatMoeda(orcamento.value)}</td>
+                </tr>
+              )}
               <tr className="totals-row">
                 <td className="label">Valor total do orçamento</td>
                 <td className="num">R$ {formatMoeda(orcamento.value)}</td>
               </tr>
             </tbody>
           </table>
+
+          {orcamento.observacoes && (
+            <div className="mensagem-capa">
+              <p className="field-label">Observações</p>
+              <p className="field-sub">{orcamento.observacoes}</p>
+            </div>
+          )}
 
           <p className="disclaimer">
             Este orçamento não substitui nota fiscal e não constitui cobrança — os valores podem ser ajustados após
@@ -412,6 +454,10 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
           color: #635b4c;
           margin: 0;
           line-height: 1.5;
+        }
+        .mensagem-capa {
+          padding: 10px 0;
+          border-top: 1px solid rgba(20, 45, 101, 0.16);
         }
         :global(table.items) {
           width: 100%;

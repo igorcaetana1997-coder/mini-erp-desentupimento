@@ -3,20 +3,31 @@ import { DocumentoPdfShell, ItemsTable, styles } from "./DocumentoPdfShell";
 import { formatEndereco } from "@/lib/formatEndereco";
 import { formatMoeda } from "@/lib/formatMoeda";
 
-export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel, numero }) {
-  const valorTexto = `R$ ${formatMoeda(orcamento.value)}`;
+export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel, numero, assets }) {
+  const valorTotalTexto = `R$ ${formatMoeda(orcamento.value)}`;
+  const temItens = orcamento.itens?.length > 0;
+  const linhasItens = temItens
+    ? orcamento.itens.map((it) => ({
+        id: it.id,
+        descricao: it.quantidade > 1 ? `${it.descricao} (x${it.quantidade})` : it.descricao,
+        valorFormatado: `R$ ${formatMoeda(it.quantidade * it.valorUnitario)}`,
+      }))
+    : null;
+  const titulo = orcamento.itens?.length > 1 ? "Orçamento de serviços" : orcamento.serviceType;
 
   return (
     <Document>
       <DocumentoPdfShell
         kicker="Orçamento de serviço"
         numero={numero}
-        titulo={orcamento.serviceType}
+        titulo={titulo}
         stampLabel={stamp.label}
         stampBg={stamp.bg}
         stampText={stamp.text}
         hash={`ORC-${orcamento.id.slice(-6).toUpperCase()}`}
         emitidoEm={emitidoEmLabel}
+        logoSrc={assets?.logoSrc}
+        watermarkSrc={assets?.watermarkSrc}
       >
         <View style={styles.infoGrid}>
           <View style={styles.infoCol}>
@@ -36,13 +47,27 @@ export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel,
           </View>
         </View>
 
+        {orcamento.mensagemCapa ? (
+          <View style={{ marginBottom: 10 }}>
+            <Text style={styles.fieldLabel}>Mensagem</Text>
+            <Text style={styles.fieldSub}>{orcamento.mensagemCapa}</Text>
+          </View>
+        ) : null}
+
         <ItemsTable
           descricao={orcamento.serviceType}
-          subLinha={orcamento.observacoes || null}
-          valor={valorTexto}
+          valor={valorTotalTexto}
+          itens={linhasItens}
           totalLabel="Valor total do orçamento"
-          totalValor={valorTexto}
+          totalValor={valorTotalTexto}
         />
+
+        {orcamento.observacoes ? (
+          <View style={{ marginBottom: 4 }}>
+            <Text style={styles.fieldLabel}>Observações</Text>
+            <Text style={styles.fieldSub}>{orcamento.observacoes}</Text>
+          </View>
+        ) : null}
 
         <Text style={styles.disclaimer}>
           Este orçamento não substitui nota fiscal e não constitui cobrança — os valores podem ser

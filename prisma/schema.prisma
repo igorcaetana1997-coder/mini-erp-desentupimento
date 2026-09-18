@@ -118,21 +118,39 @@ model OrdemServico {
   fotos     FotoServico[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  @@index([technicianId])
+  @@index([parceiroId])
 }
 
 model Orcamento {
-  id             String        @id @default(cuid())
+  id             String          @id @default(cuid())
   clienteId      String
-  cliente        Cliente       @relation(fields: [clienteId], references: [id])
-  serviceType    String
-  value          Float
+  cliente        Cliente         @relation(fields: [clienteId], references: [id])
+  serviceType    String // resumo consolidado a partir dos itens (ou texto livre em orçamentos legados sem itens)
+  value          Float // total consolidado = soma dos itens (ou valor livre em orçamentos legados sem itens)
+  mensagemCapa   String? // mensagem/oferta exibida no topo do PDF e do e-mail
   validoAte      DateTime? // validade do orçamento (opcional)
   observacoes    String?
-  status         String        @default("pendente") // "pendente" | "aprovado" | "recusado"
-  ordemServicoId String?       @unique // preenchido quando aprovado e a OS é gerada automaticamente
-  ordemServico   OrdemServico? @relation(fields: [ordemServicoId], references: [id])
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  status         String          @default("pendente") // "pendente" | "aprovado" | "recusado"
+  ordemServicoId String?         @unique // preenchido quando aprovado e a OS é gerada automaticamente
+  ordemServico   OrdemServico?   @relation(fields: [ordemServicoId], references: [id])
+  itens          OrcamentoItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model OrcamentoItem {
+  id            String    @id @default(cuid())
+  orcamentoId   String
+  orcamento     Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  descricao     String
+  quantidade    Int       @default(1)
+  valorUnitario Float
+  ordem         Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([orcamentoId])
 }
 
 model FotoServico {
@@ -141,6 +159,8 @@ model FotoServico {
   ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id])
   data           String // data URL base64 (JPEG redimensionado no navegador)
   createdAt      DateTime     @default(now())
+
+  @@index([ordemServicoId])
 }
 
 model Despesa {

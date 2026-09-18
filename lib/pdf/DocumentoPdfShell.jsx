@@ -243,15 +243,27 @@ function FiscalRow({ label, value }) {
   );
 }
 
-export function DocumentoPdfShell({ kicker, numero, titulo, stampLabel, stampBg, stampText, hash, emitidoEm, children }) {
+export function DocumentoPdfShell({
+  kicker,
+  numero,
+  titulo,
+  stampLabel,
+  stampBg,
+  stampText,
+  hash,
+  emitidoEm,
+  children,
+  logoSrc = "/logo-horizontal-outline.png",
+  watermarkSrc = "/logo-icon-outline.png",
+}) {
   return (
     <Page size="A4" style={styles.page}>
       <View style={styles.watermark} fixed>
-        <Image src="/logo-icon-outline.png" style={styles.watermarkImage} />
+        <Image src={watermarkSrc} style={styles.watermarkImage} />
       </View>
 
       <View style={styles.letterhead}>
-        <Image src="/logo-horizontal-outline.png" style={styles.logo} />
+        <Image src={logoSrc} style={styles.logo} />
         <View style={styles.companyBlock}>
           <Text style={styles.razao}>{COMPANY.razaoSocial.toUpperCase()}</Text>
           <Text style={styles.fantasia}>{COMPANY.nomeFantasia}</Text>
@@ -287,20 +299,27 @@ export function DocumentoPdfShell({ kicker, numero, titulo, stampLabel, stampBg,
   );
 }
 
-export function ItemsTable({ descricao, subLinha, valorLabel, valor, totalLabel, totalValor }) {
+export function ItemsTable({ descricao, subLinha, valorLabel, valor, totalLabel, totalValor, itens }) {
+  const linhas =
+    itens && itens.length > 0
+      ? itens.map((it) => ({ key: it.id, descricao: it.descricao, subLinha: null, valor: it.valorFormatado }))
+      : [{ key: "unico", descricao, subLinha, valor }];
+
   return (
     <View style={styles.table}>
       <View style={styles.theadRow}>
         <Text style={[styles.th, styles.thDesc]}>Descrição</Text>
         <Text style={[styles.th, styles.thValor]}>{valorLabel || "Valor"}</Text>
       </View>
-      <View style={styles.row}>
-        <View style={styles.tdDesc}>
-          <Text style={styles.td}>{descricao}</Text>
-          {subLinha ? <Text style={[styles.subLine, { paddingHorizontal: 8 }]}>{subLinha}</Text> : null}
+      {linhas.map((linha) => (
+        <View style={styles.row} key={linha.key}>
+          <View style={styles.tdDesc}>
+            <Text style={styles.td}>{linha.descricao}</Text>
+            {linha.subLinha ? <Text style={[styles.subLine, { paddingHorizontal: 8 }]}>{linha.subLinha}</Text> : null}
+          </View>
+          <Text style={[styles.td, styles.tdValor]}>{linha.valor}</Text>
         </View>
-        <Text style={[styles.td, styles.tdValor]}>{valor}</Text>
-      </View>
+      ))}
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>{totalLabel}</Text>
         <Text style={styles.totalValue}>{totalValor}</Text>

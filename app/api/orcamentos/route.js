@@ -4,10 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
+import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
 
 const include = {
   cliente: true,
   ordemServico: { select: { id: true } },
+  itens: { orderBy: { ordem: "asc" } },
 };
 
 export async function GET() {
@@ -31,10 +33,10 @@ export async function POST(req) {
   }
 
   const body = await req.json();
-  const { clienteId, serviceType, value, validoAte, observacoes } = body;
+  const { clienteId, validoAte, observacoes, mensagemCapa } = body;
 
-  if (!clienteId || !serviceType) {
-    return NextResponse.json({ error: "Cliente e tipo de serviço são obrigatórios" }, { status: 400 });
+  if (!clienteId) {
+    return NextResponse.json({ error: "Cliente é obrigatório" }, { status: 400 });
   }
 
   const cliente = await prisma.cliente.findUnique({ where: { id: clienteId } });
@@ -42,18 +44,20 @@ export async function POST(req) {
     return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
   }
 
-  const valorNumero = Number(value);
-  if (!Number.isFinite(valorNumero) || valorNumero <= 0) {
-    return NextResponse.json({ error: "Valor deve ser um número maior que zero" }, { status: 400 });
+  const { itens, error: erroItens } = validarItens(body.itens);
+  if (erroItens) {
+    return NextResponse.json({ error: erroItens }, { status: 400 });
   }
 
   const orcamento = await prisma.orcamento.create({
     data: {
       clienteId,
-      serviceType,
-      value: valorNumero,
+      serviceType: consolidarServiceType(itens),
+      value: calcularTotalItens(itens),
+      mensagemCapa: mensagemCapa?.trim() || null,
       validoAte: validoAte ? new Date(validoAte) : null,
       observacoes: observacoes?.trim() || null,
+      itens: { create: itens.map((it, idx) => ({ ...it, ordem: idx })) },
     },
     include,
   });
