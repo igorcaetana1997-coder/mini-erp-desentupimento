@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
-import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
+import { validarItens, validarValorFechado, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
 import { validarDescontoAvistaPercentual } from "@/lib/orcamentoDesconto";
 import { validarEmailsCopia } from "@/lib/emailList";
 
@@ -46,9 +46,18 @@ export async function POST(req) {
     return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
   }
 
-  const { itens, error: erroItens } = validarItens(body.itens);
+  const totalFechado = body.totalFechado === true;
+  const { itens, error: erroItens } = validarItens(body.itens, { totalFechado });
   if (erroItens) {
     return NextResponse.json({ error: erroItens }, { status: 400 });
+  }
+  let valorTotal = calcularTotalItens(itens);
+  if (totalFechado) {
+    const { valor, error: erroValor } = validarValorFechado(body.valorTotal);
+    if (erroValor) {
+      return NextResponse.json({ error: erroValor }, { status: 400 });
+    }
+    valorTotal = valor;
   }
 
   const { percentual: descontoAvistaPercentual, error: erroDesconto } = validarDescontoAvistaPercentual(
@@ -67,7 +76,8 @@ export async function POST(req) {
     data: {
       clienteId,
       serviceType: consolidarServiceType(itens),
-      value: calcularTotalItens(itens),
+      value: valorTotal,
+      totalFechado,
       mensagemCapa: mensagemCapa?.trim() || null,
       descontoAvistaPercentual,
       emailsCopia,

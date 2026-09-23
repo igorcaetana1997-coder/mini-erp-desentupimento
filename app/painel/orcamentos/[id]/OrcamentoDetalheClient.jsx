@@ -415,16 +415,20 @@ export default function OrcamentoDetalheClient({ orcamentoId }) {
           <table className="items">
             <thead>
               <tr>
-                <th>Descrição</th>
-                <th className="num">Valor</th>
+                <th colSpan={orcamento.totalFechado ? 2 : 1}>Descrição</th>
+                {!orcamento.totalFechado && <th className="num">Valor</th>}
               </tr>
             </thead>
             <tbody>
               {orcamento.itens?.length > 0 ? (
                 orcamento.itens.map((it) => (
                   <tr key={it.id}>
-                    <td>{it.quantidade > 1 ? `${it.descricao} (x${it.quantidade})` : it.descricao}</td>
-                    <td className="num">R$ {formatMoeda(it.quantidade * it.valorUnitario)}</td>
+                    <td colSpan={orcamento.totalFechado ? 2 : 1}>
+                      {it.quantidade > 1 ? `${it.descricao} (x${it.quantidade})` : it.descricao}
+                    </td>
+                    {!orcamento.totalFechado && (
+                      <td className="num">R$ {formatMoeda(it.quantidade * it.valorUnitario)}</td>
+                    )}
                   </tr>
                 ))
               ) : (

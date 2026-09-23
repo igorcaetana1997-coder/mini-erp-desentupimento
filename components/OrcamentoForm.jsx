@@ -34,7 +34,7 @@ function itensIniciais(initial) {
         tipo: ehOutro ? OUTRO_SERVICO : it.descricao,
         outroTexto: ehOutro ? it.descricao : "",
         quantidade: String(it.quantidade),
-        valorUnitario: String(it.valorUnitario),
+        valorUnitario: initial.totalFechado ? "" : String(it.valorUnitario),
       };
     });
   }
@@ -61,6 +61,10 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
   const [validoAte, setValidoAte] = useState(initial?.validoAte ? initial.validoAte.slice(0, 10) : "");
   const [observacoes, setObservacoes] = useState(initial?.observacoes || "");
   const [emailsCopia, setEmailsCopia] = useState(initial?.emailsCopia || "");
+  const [totalFechado, setTotalFechado] = useState(Boolean(initial?.totalFechado));
+  const [valorFechado, setValorFechado] = useState(
+    initial?.totalFechado && initial?.value != null ? String(initial.value) : ""
+  );
   const [descontoAtivo, setDescontoAtivo] = useState(Boolean(initial?.descontoAvistaPercentual));
   const [descontoPercentual, setDescontoPercentual] = useState(
     initial?.descontoAvistaPercentual ? String(initial.descontoAvistaPercentual) : ""
@@ -102,12 +106,15 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
     const itensPayload = itens.map((it) => ({
       descricao: it.tipo === OUTRO_SERVICO ? it.outroTexto.trim() : it.tipo,
       quantidade: Number(it.quantidade) || 1,
-      valorUnitario: Number(it.valorUnitario),
+      valorUnitario: totalFechado ? 0 : Number(it.valorUnitario),
     }));
-    if (itensPayload.some((it) => !it.descricao || !it.valorUnitario)) return;
+    if (itensPayload.some((it) => !it.descricao || (!totalFechado && !it.valorUnitario))) return;
+    if (totalFechado && !(Number(valorFechado) > 0)) return;
     onSave({
       clienteId: clientId,
       itens: itensPayload,
+      totalFechado,
+      valorTotal: totalFechado ? Number(valorFechado) : undefined,
       validoAte: validoAte || null,
       observacoes,
       mensagemCapa: mensagemCapa.trim() || null,
@@ -157,6 +164,10 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
       ) : (
         <>
           <label className="text-[11px] font-bold uppercase tracking-wide text-[rgb(var(--ink))]">Itens</label>
+          <label className="flex items-center gap-2 text-sm text-[rgb(var(--ink-strong)/1)]">
+            <input type="checkbox" checked={totalFechado} onChange={(e) => setTotalFechado(e.target.checked)} />
+            Valor fechado — listar os serviços e informar só o total
+          </label>
           <div className="flex flex-col gap-2">
             {itens.map((it, idx) => (
               <div key={idx} className="border border-[rgb(var(--border-strong)/0.25)] p-2 flex flex-col gap-1.5">
@@ -202,13 +213,15 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
                     placeholder="Qtd."
                     className="w-20 border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
                   />
-                  <input
-                    type="number"
-                    value={it.valorUnitario}
-                    onChange={(e) => atualizarItem(idx, "valorUnitario", e.target.value)}
-                    placeholder="Valor unitário (R$)"
-                    className="flex-1 border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
-                  />
+                  {!totalFechado && (
+                    <input
+                      type="number"
+                      value={it.valorUnitario}
+                      onChange={(e) => atualizarItem(idx, "valorUnitario", e.target.value)}
+                      placeholder="Valor unitário (R$)"
+                      className="flex-1 border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -222,9 +235,24 @@ export default function OrcamentoForm({ clients, initial, onSave, onCancel, onCl
             <Plus size={14} /> Adicionar item
           </button>
 
-          <p className="text-right text-sm font-bold text-[rgb(var(--ink-strong)/1)]">
-            Total: R$ {formatMoeda(totalCalculado)}
-          </p>
+          {totalFechado ? (
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-sm font-bold text-[rgb(var(--ink-strong)/1)]">Valor total (R$):</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={valorFechado}
+                onChange={(e) => setValorFechado(e.target.value)}
+                placeholder="Ex: 4100"
+                className="w-36 border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+              />
+            </div>
+          ) : (
+            <p className="text-right text-sm font-bold text-[rgb(var(--ink-strong)/1)]">
+              Total: R$ {formatMoeda(totalCalculado)}
+            </p>
+          )}
 
           <textarea
             value={mensagemCapa}

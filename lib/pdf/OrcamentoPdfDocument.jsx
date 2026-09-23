@@ -66,6 +66,7 @@ export default function OrcamentoPdfDocument({ orcamento, stamp, emitidoEmLabel,
           descricao={orcamento.serviceType}
           valor={valorTotalTexto}
           itens={linhasItens}
+          semValorPorItem={orcamento.totalFechado}
           totalLabel="Valor total do orçamento"
           totalValor={valorTotalTexto}
         />

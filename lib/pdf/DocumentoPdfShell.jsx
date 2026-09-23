@@ -299,7 +299,7 @@ export function DocumentoPdfShell({
   );
 }
 
-export function ItemsTable({ descricao, subLinha, valorLabel, valor, totalLabel, totalValor, itens }) {
+export function ItemsTable({ descricao, subLinha, valorLabel, valor, totalLabel, totalValor, itens, semValorPorItem }) {
   const linhas =
     itens && itens.length > 0
       ? itens.map((it) => ({ key: it.id, descricao: it.descricao, subLinha: null, valor: it.valorFormatado }))
@@ -309,7 +309,7 @@ export function ItemsTable({ descricao, subLinha, valorLabel, valor, totalLabel,
     <View style={styles.table}>
       <View style={styles.theadRow}>
         <Text style={[styles.th, styles.thDesc]}>Descrição</Text>
-        <Text style={[styles.th, styles.thValor]}>{valorLabel || "Valor"}</Text>
+        {semValorPorItem ? null : <Text style={[styles.th, styles.thValor]}>{valorLabel || "Valor"}</Text>}
       </View>
       {linhas.map((linha) => (
         <View style={styles.row} key={linha.key}>
@@ -317,7 +317,7 @@ export function ItemsTable({ descricao, subLinha, valorLabel, valor, totalLabel,
             <Text style={styles.td}>{linha.descricao}</Text>
             {linha.subLinha ? <Text style={[styles.subLine, { paddingHorizontal: 8 }]}>{linha.subLinha}</Text> : null}
           </View>
-          <Text style={[styles.td, styles.tdValor]}>{linha.valor}</Text>
+          {semValorPorItem ? null : <Text style={[styles.td, styles.tdValor]}>{linha.valor}</Text>}
         </View>
       ))}
       <View style={styles.totalRow}>

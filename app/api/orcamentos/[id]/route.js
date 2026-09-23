@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isGestor, roleLabel } from "@/lib/permissions";
 import { registrarAuditoria, descreverAlteracoes } from "@/lib/audit";
 import { formatMoeda } from "@/lib/formatMoeda";
-import { validarItens, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
+import { validarItens, validarValorFechado, calcularTotalItens, consolidarServiceType } from "@/lib/orcamentoItens";
 import { validarDescontoAvistaPercentual } from "@/lib/orcamentoDesconto";
 import { validarEmailsCopia } from "@/lib/emailList";
 
@@ -96,13 +96,23 @@ export async function PATCH(req, { params }) {
   const data = {};
   let novosItens = null;
   if (body.itens !== undefined) {
-    const { itens, error: erroItens } = validarItens(body.itens);
+    const totalFechado = body.totalFechado === true;
+    const { itens, error: erroItens } = validarItens(body.itens, { totalFechado });
     if (erroItens) {
       return NextResponse.json({ error: erroItens }, { status: 400 });
     }
     novosItens = itens;
     data.serviceType = consolidarServiceType(itens);
-    data.value = calcularTotalItens(itens);
+    data.totalFechado = totalFechado;
+    if (totalFechado) {
+      const { valor, error: erroValor } = validarValorFechado(body.valorTotal);
+      if (erroValor) {
+        return NextResponse.json({ error: erroValor }, { status: 400 });
+      }
+      data.value = valor;
+    } else {
+      data.value = calcularTotalItens(itens);
+    }
   } else {
     if (typeof body.serviceType === "string" && body.serviceType.trim()) {
       data.serviceType = body.serviceType.trim();
