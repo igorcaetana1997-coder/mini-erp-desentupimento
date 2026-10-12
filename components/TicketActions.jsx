@@ -15,10 +15,12 @@ import {
   Trash2,
   Pencil,
   X,
+  Mail,
 } from "lucide-react";
 import ConcluirOsModal from "./ConcluirOsModal";
 import RecusarOsModal from "./RecusarOsModal";
 import EditarOsModal from "./EditarOsModal";
+import EnviarCobrancaModal from "./EnviarCobrancaModal";
 import { resizeImageToDataUrl } from "@/lib/resizeImage";
 import { getStatusPagamento } from "@/lib/paymentStatus";
 import { formatMoeda } from "@/lib/formatMoeda";
@@ -47,6 +49,8 @@ export default function TicketActions({
   const [showConcluir, setShowConcluir] = useState(false);
   const [showRecusar, setShowRecusar] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
+  const [showCobranca, setShowCobranca] = useState(false);
+  const [cobrancaEnviadaEm, setCobrancaEnviadaEm] = useState(os.cobrancaEnviadaEm || null);
   const [editingMateriais, setEditingMateriais] = useState(false);
   const [materiaisDraft, setMateriaisDraft] = useState(os.materiais || "");
   const [editingValor, setEditingValor] = useState(false);
@@ -410,6 +414,24 @@ export default function TicketActions({
           >
             <FileText size={14} /> Ver recibo / gerar PDF
           </Link>
+          {isAdmin && (
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => setShowCobranca(true)}
+                disabled={busy || !os.cliente?.email}
+                title={!os.cliente?.email ? "Cliente não tem e-mail cadastrado" : undefined}
+                className="flex items-center justify-center gap-1.5 border-2 border-[rgb(var(--border-strong)/1)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide py-2 hover:bg-[#142D65]/5 transition-colors disabled:opacity-40"
+              >
+                <Mail size={14} /> Enviar NF-e + boleto por e-mail
+              </button>
+              {cobrancaEnviadaEm && (
+                <p className="text-[11px] text-[#1E7A52] font-semibold text-center">
+                  Enviado em {new Date(cobrancaEnviadaEm).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -492,6 +514,17 @@ export default function TicketActions({
           onConfirm={(payload) => {
             onEditarOs(os.id, payload);
             setShowEditar(false);
+          }}
+        />
+      )}
+
+      {showCobranca && (
+        <EnviarCobrancaModal
+          os={os}
+          onClose={() => setShowCobranca(false)}
+          onEnviado={(quando) => {
+            setCobrancaEnviadaEm(quando);
+            setShowCobranca(false);
           }}
         />
       )}
