@@ -23,6 +23,7 @@
     "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.65.0",
     "bcryptjs": "^2.4.3",
+    "imapflow": "^2.4.0",
     "lucide-react": "^0.441.0",
     "next": "14.2.35",
     "next-auth": "^4.24.7",

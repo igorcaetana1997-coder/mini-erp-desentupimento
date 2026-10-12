@@ -7,6 +7,9 @@ import { registrarAuditoria } from "@/lib/audit";
 import { sendCobrancaEmail } from "@/lib/smtpEmail";
 import { validarEmailsCopia } from "@/lib/emailList";
 
+// SMTP + cópia por IMAP podem passar dos 10s padrão da função.
+export const maxDuration = 30;
+
 // Vercel corta o corpo da request em ~4,5 MB; NF-e e boleto em PDF ficam bem
 // abaixo disso, mas o limite aqui evita erro genérico de gateway.
 const LIMITE_POR_ARQUIVO = 3 * 1024 * 1024;

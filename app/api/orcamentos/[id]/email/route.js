@@ -11,6 +11,9 @@ import { getPdfAssets } from "@/lib/pdf/assets.server";
 import OrcamentoPdfDocument from "@/lib/pdf/OrcamentoPdfDocument";
 import { STATUS_STAMP } from "@/lib/orcamentoStamp";
 
+// PDF no servidor + SMTP + cópia por IMAP podem passar dos 10s padrão da função.
+export const maxDuration = 30;
+
 export async function POST(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session || !isGestor(session.user.role)) {
