@@ -76,7 +76,7 @@ export default function EnviarCobrancaModal({ os, onClose, onEnviado }) {
 
         <p className="text-xs text-[rgb(var(--ink))]">
           Vai para <b className="text-[rgb(var(--ink-strong)/1)]">{destinatario}</b>, enviado de{" "}
-          <b className="text-[rgb(var(--ink-strong)/1)]">financeiro@realleaderdesentupidora.com.br</b>, com um texto
+          <b className="text-[rgb(var(--ink-strong)/1)]">comercial@realleaderdesentupidora.com.br</b>, com um texto
           amigável, o resumo do serviço e os arquivos em anexo.
         </p>
 

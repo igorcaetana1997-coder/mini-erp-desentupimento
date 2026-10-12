@@ -110,7 +110,7 @@ model OrdemServico {
   // Automação de WhatsApp (acompanhamento pós-serviço)
   concluidaEm       DateTime? // quando o status virou "concluida" (separado de updatedAt, que muda com qualquer edição)
   followUpEnviadoEm DateTime? // quando a mensagem de acompanhamento (15 dias) foi enviada
-  cobrancaEnviadaEm DateTime? // último envio de NF-e + boleto por e-mail (financeiro@) ao cliente
+  cobrancaEnviadaEm DateTime? // último envio de NF-e + boleto por e-mail ao cliente
 
   deletedAt DateTime? // preenchido = está na lixeira; null = ativa
 

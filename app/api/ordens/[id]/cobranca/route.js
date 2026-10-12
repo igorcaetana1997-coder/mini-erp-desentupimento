@@ -93,11 +93,12 @@ export async function POST(req, { params }) {
       mensagem,
       anexos,
       cc,
+      conta: "comercial",
     });
   } catch (err) {
     console.error("Falha ao enviar NF-e/boleto da OS:", err);
     return NextResponse.json(
-      { error: "Não foi possível enviar o e-mail. Verifique a configuração da caixa financeiro@." },
+      { error: "Não foi possível enviar o e-mail. Verifique a configuração SMTP." },
       { status: 502 }
     );
   }
