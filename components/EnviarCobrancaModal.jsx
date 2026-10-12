@@ -30,11 +30,16 @@ export default function EnviarCobrancaModal({ os, onClose, onEnviado }) {
   const [cc, setCc] = useState("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
-
-  const destinatario = os.cliente?.email;
+  const emailCadastrado = os.cliente?.email || "";
+  const [destinatario, setDestinatario] = useState(emailCadastrado);
+  const [salvarEmail, setSalvarEmail] = useState(true);
 
   const submit = async () => {
     setError("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destinatario.trim())) {
+      setError("Informe um e-mail válido para o cliente.");
+      return;
+    }
     if (!nfe && !boleto) {
       setError("Anexe pelo menos a NF-e ou o boleto.");
       return;
@@ -52,6 +57,8 @@ export default function EnviarCobrancaModal({ os, onClose, onEnviado }) {
       if (boleto) form.append("boleto", boleto);
       form.append("mensagem", mensagem);
       form.append("cc", cc);
+      form.append("destinatario", destinatario.trim());
+      form.append("salvarEmail", salvarEmail ? "1" : "");
       const res = await fetch(`/api/ordens/${os.id}/cobranca`, { method: "POST", body: form });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Não foi possível enviar o e-mail.");
@@ -75,10 +82,29 @@ export default function EnviarCobrancaModal({ os, onClose, onEnviado }) {
         </div>
 
         <p className="text-xs text-[rgb(var(--ink))]">
-          Vai para <b className="text-[rgb(var(--ink-strong)/1)]">{destinatario}</b>, enviado de{" "}
-          <b className="text-[rgb(var(--ink-strong)/1)]">comercial@realleaderdesentupidora.com.br</b>, com um texto
-          amigável, o resumo do serviço e os arquivos em anexo.
+          Enviado de <b className="text-[rgb(var(--ink-strong)/1)]">comercial@realleaderdesentupidora.com.br</b> com um
+          texto amigável, o resumo do serviço e os arquivos em anexo.
         </p>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-wide text-[rgb(var(--ink))]">
+            E-mail do cliente ({os.cliente?.name})
+          </label>
+          <input
+            type="email"
+            value={destinatario}
+            onChange={(e) => setDestinatario(e.target.value)}
+            placeholder={emailCadastrado ? undefined : "Cliente sem e-mail cadastrado — digite aqui"}
+            autoFocus={!emailCadastrado}
+            className="border border-[rgb(var(--border-strong)/0.3)] px-2 py-1.5 text-sm outline-none focus:border-[#1E7A52]"
+          />
+          {destinatario.trim() && destinatario.trim() !== emailCadastrado && (
+            <label className="flex items-center gap-2 text-xs text-[rgb(var(--ink))]">
+              <input type="checkbox" checked={salvarEmail} onChange={(e) => setSalvarEmail(e.target.checked)} />
+              Salvar este e-mail no cadastro do cliente
+            </label>
+          )}
+        </div>
 
         <CampoArquivo rotulo="NF-e de serviço" dica="Escolher o PDF da nota" arquivo={nfe} onChange={setNfe} />
         <CampoArquivo rotulo="Boleto" dica="Escolher o PDF do boleto" arquivo={boleto} onChange={setBoleto} />

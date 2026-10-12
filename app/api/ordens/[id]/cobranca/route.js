@@ -38,16 +38,20 @@ export async function POST(req, { params }) {
   if (os.status !== "concluida") {
     return NextResponse.json({ error: "Só é possível enviar a cobrança de uma OS concluída" }, { status: 400 });
   }
-  if (!os.cliente?.email) {
-    return NextResponse.json({ error: "Cliente não tem e-mail cadastrado" }, { status: 400 });
-  }
-
   let form;
   try {
     form = await req.formData();
   } catch {
     return NextResponse.json({ error: "Envio inválido" }, { status: 400 });
   }
+
+  // O destinatário pode ser digitado na hora (muito cliente foi cadastrado só
+  // com telefone); opcionalmente fica salvo no cadastro pra próxima vez.
+  const destinatario = (typeof form.get("destinatario") === "string" ? form.get("destinatario") : "").trim() || os.cliente?.email || "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destinatario)) {
+    return NextResponse.json({ error: "Informe um e-mail válido para o cliente" }, { status: 400 });
+  }
+  const salvarEmail = form.get("salvarEmail") === "1" && destinatario !== os.cliente?.email;
 
   const numeroOs = os.id.slice(-6).toUpperCase();
   const anexos = [];
@@ -83,7 +87,7 @@ export async function POST(req, { params }) {
   const mensagem = typeof form.get("mensagem") === "string" ? form.get("mensagem").trim() : "";
 
   try {
-    await sendCobrancaEmail(os.cliente.email, {
+    await sendCobrancaEmail(destinatario, {
       clienteNome: os.cliente.name,
       numeroOs,
       servico: os.serviceType,
@@ -103,11 +107,16 @@ export async function POST(req, { params }) {
     );
   }
 
-  const atualizada = await prisma.ordemServico.update({
-    where: { id: os.id },
-    data: { cobrancaEnviadaEm: new Date() },
-    select: { cobrancaEnviadaEm: true },
-  });
+  const [atualizada] = await prisma.$transaction([
+    prisma.ordemServico.update({
+      where: { id: os.id },
+      data: { cobrancaEnviadaEm: new Date() },
+      select: { cobrancaEnviadaEm: true },
+    }),
+    ...(salvarEmail
+      ? [prisma.cliente.update({ where: { id: os.clienteId }, data: { email: destinatario } })]
+      : []),
+  ]);
 
   await registrarAuditoria({
     session,
@@ -116,8 +125,10 @@ export async function POST(req, { params }) {
     entityId: os.id,
     description: `${session.user.name} (${roleLabel(session.user.role)}) enviou ${anexos
       .map((a) => a.filename)
-      .join(" e ")} da OS de ${os.cliente.name} por e-mail (${os.cliente.email})${cc ? ` com cópia para ${cc}` : ""}`,
+      .join(" e ")} da OS de ${os.cliente.name} por e-mail (${destinatario})${cc ? ` com cópia para ${cc}` : ""}${
+      salvarEmail ? " e salvou o e-mail no cadastro do cliente" : ""
+    }`,
   });
 
-  return NextResponse.json({ ok: true, cobrancaEnviadaEm: atualizada.cobrancaEnviadaEm });
+  return NextResponse.json({ ok: true, cobrancaEnviadaEm: atualizada.cobrancaEnviadaEm, emailSalvo: salvarEmail ? destinatario : null });
 }

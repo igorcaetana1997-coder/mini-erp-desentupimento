@@ -419,8 +419,7 @@ export default function TicketActions({
               <button
                 type="button"
                 onClick={() => setShowCobranca(true)}
-                disabled={busy || !os.cliente?.email}
-                title={!os.cliente?.email ? "Cliente não tem e-mail cadastrado" : undefined}
+                disabled={busy}
                 className="flex items-center justify-center gap-1.5 border-2 border-[rgb(var(--border-strong)/1)] text-[rgb(var(--ink-strong)/1)] text-xs font-bold uppercase tracking-wide py-2 hover:bg-[#142D65]/5 transition-colors disabled:opacity-40"
               >
                 <Mail size={14} /> Enviar NF-e + boleto por e-mail
